@@ -1,0 +1,11 @@
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile project(':lib_ice')
+    compile project(':lib_mq')
+}
+
+shadowJar {
+    baseName = 'core-lib-drug'
+    classifier = null
+    version = null
+}

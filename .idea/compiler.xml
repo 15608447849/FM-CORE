@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="fm-core-jar_main" target="1.8" />
+      <module name="fm-core-jar_test" target="1.8" />
+      <module name="fm-core_main" target="1.8" />
+      <module name="FM-CORE_main" target="1.8" />
+      <module name="FM-CORE_test" target="1.8" />
+      <module name="fm-core_test" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

@@ -1,0 +1,8 @@
+
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    //引用公共库 
+    compile project(':lib_mltcp')
+
+}
