@@ -1,6 +1,6 @@
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(':lib_mltcp')
+    compile project(':lib_ping')
     compile 'org.apache.activemq:activemq-all:5.15.4'
     
 //    compile 'org.apache.kafka:kafka_2.12:2.4.0'

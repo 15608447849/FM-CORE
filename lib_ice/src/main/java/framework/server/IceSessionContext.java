@@ -33,7 +33,6 @@ public class IceSessionContext {
     static IceSessionContext create(Current current, String packagePath, IRequest request) throws Exception{
         IceSessionContext session = (IceSessionContext) ObjectPoolManager.createObject(contextImp);
         session._createSession(current,packagePath,request);
-        session.initHook(current,packagePath,request);
         return session;
     }
 
@@ -108,6 +107,7 @@ public class IceSessionContext {
         initialize(request);
         this.current = current;
         this.param = request.param;
+        initHook(current,packagePath,request);
     }
 
     void destroy(){
@@ -239,6 +239,10 @@ public class IceSessionContext {
         return new int[]{0,10};
     }
 
+    String getCallerFullPath(){
+        return callClass.getSimpleName() +"/"+callMethod.getName();
+    }
+
     String getCallerSTR(){
         String str = callClass.getName()+callMethod.getName();
         return EncryptUtil.encryption(str);
@@ -249,11 +253,8 @@ public class IceSessionContext {
         return EncryptUtil.encryption(str);
     }
 
-    public interface OperateI{
-        void execute(IceSessionContext context);
-    }
-
     protected void initHook(Current current, String packagePath, IRequest request) {
+        //初始化钩子
 
     }
 

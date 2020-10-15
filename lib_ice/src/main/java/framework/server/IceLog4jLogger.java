@@ -10,17 +10,9 @@ import bottle.util.Log4j;
  */
 public class IceLog4jLogger implements Ice.Logger {
 
-    private static final String MESSAGE_FORMAT = "【%s】 %s";
-
-    private final String prefix;
-
-    public IceLog4jLogger(String prefix){
-        this.prefix = prefix;
-    }
-
     @Override
     public Logger cloneWithPrefix(String prefix) {
-        return new IceLog4jLogger(prefix);
+        return new IceLog4jLogger();
     }
 
     @Override
@@ -30,7 +22,7 @@ public class IceLog4jLogger implements Ice.Logger {
 
     @Override
     public String getPrefix() {
-        return prefix;
+        return "";
     }
 
     @Override

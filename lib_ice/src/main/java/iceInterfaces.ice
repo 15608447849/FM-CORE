@@ -14,7 +14,7 @@ module inf{
 
     /** 方法参数 */
       struct IParam{
-          string json;
+          string org.json;
           stringArray arrays;
           byteArray bytes;
           int pageIndex;

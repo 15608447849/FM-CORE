@@ -1,5 +1,10 @@
 package jdbc.define.session;
 
+import jdbc.define.log.JDBCLogger;
+
+import java.sql.Connection;
+import java.util.HashMap;
+
 /**
  * @Author: leeping
  * @Date: 2019/8/16 9:25
@@ -7,8 +12,6 @@ package jdbc.define.session;
 public abstract class SessionManagerAbs<S> implements SessionManagerI<S> {
 
     private final ThreadLocal<S> localSession = new ThreadLocal<>();
-    private final ThreadLocal<Boolean> invoking = new ThreadLocal<>();
-
 
     @Override
     public void setSession(S session) {
@@ -20,20 +23,8 @@ public abstract class SessionManagerAbs<S> implements SessionManagerI<S> {
         return this.localSession.get();
     }
 
-
-    @Override
-    public boolean isTransactionInvoking() {
-        return Boolean.TRUE == this.invoking.get();
-    }
-
-    @Override
-    public void setTransactionInvoking(boolean isInvoking) {
-        this.invoking.set(isInvoking);
-    }
-
     @Override
     public void unInitialize() {
         this.localSession.remove();
-        this.invoking.remove();
     }
 }

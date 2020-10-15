@@ -20,26 +20,10 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
         super(manager);
     }
 
-    /* 监测连接对象是否有效 */
-    private long lastConnectionCheckTime = 0;
-
-    private boolean lastConnected = true;
-
     /* 监测连接状态 */
     @Override
     public boolean checkDBConnectionValid() {
-
-            if (lastConnected){
-                if ((System.currentTimeMillis()-lastConnectionCheckTime) < 30*1000){
-                    return true;
-                }
-
-                lastConnectionCheckTime = System.currentTimeMillis();
-            }
-
             int result = 0;
-
-
             try {
                 Connection conn = getSession();
                 //等待用于验证连接的数据库操作完成的时间（秒）。如果超时时间在操作完成之前过期，则此方法返回false。值0表示数据库操作未应用超时
@@ -47,62 +31,29 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                 if (isOK){
                     result = 1;
                 }else{
-
                     try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, "SELECT 1", false)){
-                        try(ResultSet rs = pst.executeQuery()){
-                            if (rs.next()){
-                                result = rs.getInt(1);
-                            }
+                        if (pst!=null){
+                            //可以执行select也可以执行DML（增删改）或DDL, 如果执行的select的sql语句，返回的是true, 如果执行的是DML或DDL，返回的是false
+                            //根据返回的布尔值，调用不同的方法来获得结果，如果是true，调用getResultSet来获得查询得到的结果集，如果是false,调用getUpdateCount()获得受影响的行数
+                           if ( pst.execute()){
+                               try(ResultSet rs = pst.getResultSet()){
+                                   if (rs!=null){
+                                       if (rs.next()){
+                                           result = rs.getInt(1);
+                                       }
+                                   }
+                               }
+                           }
                         }
                     }
                 }
-
             } catch (Exception e) {
-                this.closeSession();
-                JDBCLogger.error("【数据库错误】"+getManager()+"(SELECT 1)监测连接无效,关闭连接", e);
+                JDBCLogger.error("【数据库错误】"+getManager()+"(SELECT 1) 监测连接无效,关闭连接", e);
+            }finally {
+                closeSession();
             }
-            lastConnected = result==1;
-            return lastConnected;
+            return result==1;
     }
-
-
-
-//    //查询
-//    @Override
-//    public List<Object[]> query(String sql, Object[] params,Page page) {
-//        sql = Page.exeDb(this,sql,params,page);
-//        List<Object[]> result = new ArrayList<>();
-//        ResultSet rs = null;
-//        PreparedStatement pst = null;
-//        filterParam(params);
-//        try {
-//            Connection conn = this.getSession();
-//            pst = prepareStatement(conn, sql, false);
-//
-//            setParameters(pst, params);
-//            rs = pst.executeQuery();
-//            if (rs == null) throw new SQLException("'query' ResultSet is null");
-//            int cols = rs.getMetaData().getColumnCount(); //行数
-//            while(rs.next()) {
-//                Object[] arrays = new Object[cols];
-//                for(int i = 0; i < cols; i++) {
-//                    arrays[i] = rs.getObject(i + 1);
-//                }
-//                result.add(arrays);
-//            }
-//        } catch (Exception e) {
-//            result.clear();
-//            if(e instanceof SQLException && e.getMessage().contains("operation not allowed after ResultSet closed")){
-//                return query(sql,params,page);
-//            }
-//
-//            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+param2String(params), e);
-//
-//        } finally {
-//            closeSqlObject(rs,pst);
-//        }
-//        return result;
-//    }
 
     //查询
     @Override
@@ -113,66 +64,42 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
 
         Connection conn = getSession();
         try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
-            JDBCUtils.setParameters(pst, params);
-            try(ResultSet rs = pst.executeQuery()){
-                int cols = rs.getMetaData().getColumnCount(); //行数
-                while(rs.next()) {
-                    Object[] arrays = new Object[cols];
-                        for(int i = 0; i < cols; i++) {
-                            arrays[i] = rs.getObject(i + 1);
+            if (pst!=null){
+                JDBCUtils.setParameters(pst, params);
+                if (pst.execute()){
+                    try(ResultSet rs = pst.getResultSet()){
+                        if (rs!=null){
+                            int cols = rs.getMetaData().getColumnCount(); //行数
+                            while(rs.next()) {
+                                Object[] arrays = new Object[cols];
+                                for(int i = 0; i < cols; i++) {
+                                    arrays[i] = rs.getObject(i + 1);
+                                }
+                                result.add(arrays);
+                            }
                         }
-                    result.add(arrays);
+                    }
+                }
             }
-            }
+//            try(ResultSet rs = pst.executeQuery()){
+//                int cols = rs.getMetaData().getColumnCount(); //行数
+//                while(rs.next()) {
+//                    Object[] arrays = new Object[cols];
+//                        for(int i = 0; i < cols; i++) {
+//                            arrays[i] = rs.getObject(i + 1);
+//                        }
+//                    result.add(arrays);
+//            }
+//            }
+
         }catch (Exception e){
             result.clear();
             JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);
+        }finally {
+            closeSession();
         }
-
         return result;
     }
-
-    //对象映射查询
-    /* @Override
-    public <T> List<T> query(String sql, Object[] params, Class<T> beanClass,Page page) {
-
-        sql = Page.exeDb(this,sql,params,page);
-        List<T> result = new ArrayList<>();
-        ResultSet rs = null;
-        PreparedStatement pst = null;
-        filterParam(params);
-        try {
-            Connection conn = this.getSession();
-            pst = prepareStatement(conn, sql, false);
-            setParameters(pst, params);
-            rs = pst.executeQuery();
-            if (rs == null) throw new SQLException("'query' ResultSet ISNULL");
-            int cols = rs.getMetaData().getColumnCount(); //行数
-            while(rs.next()) {
-                try {
-                    T bean = createObject(beanClass);
-                    //获取本身和父级对象
-                    for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
-                       classAssignment(clazz,bean,rs);
-                    }
-                    result.add(bean);
-                } catch (Exception e) {
-                    JDBCLogger.error("【数据反射赋值错误】", e);
-                }
-            }
-        } catch (Exception e) {
-            result.clear();
-            if(e instanceof SQLException && e.getMessage().equals("operation not allowed after ResultSet closed")){
-                return query(sql,params,beanClass,page);
-            }
-            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+param2String(params), e);
-
-        } finally {
-            closeSqlObject(rs,pst);
-        }
-
-        return result;
-    }*/
 
     //对象映射查询
     @Override
@@ -182,24 +109,49 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
         List<T> result = new ArrayList<>();
         Connection conn = this.getSession();
         try (PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
-            JDBCUtils.setParameters(pst, params);
-            try(ResultSet rs = pst.executeQuery();){
-                while(rs.next()) {
-                    try {
-                        T bean = JDBCUtils.createObject(beanClass);
-                        //获取本身和父级对象
-                        for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
-                            JDBCUtils.classAssignment(clazz,bean,rs);
+            if (pst!=null){
+                JDBCUtils.setParameters(pst, params);
+                if (pst.execute()){
+                    try(ResultSet rs = pst.getResultSet()){
+                        if (rs!=null){
+                            while(rs.next()) {
+                                try {
+                                    T bean = JDBCUtils.createObject(beanClass);
+                                    //获取本身和父级对象
+                                    for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
+                                        JDBCUtils.classAssignment(clazz,bean,rs);
+                                    }
+                                    result.add(bean);
+                                } catch (Exception e) {
+                                    JDBCLogger.error("【数据反射赋值错误】", e);
+                                }
+                            }
                         }
-                        result.add(bean);
-                    } catch (Exception e) {
-                        JDBCLogger.error("【数据反射赋值错误】", e);
                     }
                 }
+                /*
+                try(ResultSet rs = pst.executeQuery();){
+                    while(rs.next()) {
+                        try {
+                            T bean = JDBCUtils.createObject(beanClass);
+                            //获取本身和父级对象
+                            for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
+                                JDBCUtils.classAssignment(clazz,bean,rs);
+                            }
+                            result.add(bean);
+                        } catch (Exception e) {
+                            JDBCLogger.error("【数据反射赋值错误】", e);
+                        }
+                    }
+                }
+                */
             }
+
         } catch (Exception e) {
             result.clear();
             JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);
+        }finally {
+            closeSession();
         }
         return result;
     }
@@ -238,18 +190,23 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     @Override
     public int execute(String sql, Object[] params) {
         JDBCUtils.filterParam(params);
-        int result;
+        int affectedRows = -1;
         Connection conn = getSession();
         try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
             JDBCUtils.setParameters(pst, params);
-            result = pst.executeUpdate();
+            if (!pst.execute()){
+                affectedRows = pst.getUpdateCount();
+            }
+            //affectedRows = pst.executeUpdate();
         } catch (Exception e) {
-            result = -1;
+            affectedRows = -1;
             JDBCLogger.error(
                     "【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params),
                     e);
+        }finally {
+            closeSession();
         }
-        return result;
+        return affectedRows;
     }
 
     @Override
@@ -260,9 +217,9 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
         if (batchSize<paramList.size()) batchSize = paramList.size();
         int index = 0;
         int[] effect = new int[paramList.size()];
-
+        Connection conn = null;
         try{
-            Connection conn = getSession();
+            conn = getSession();
             conn.setAutoCommit(false);
             try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
 
@@ -293,12 +250,30 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                         effect[i] = 1;
                     }
                 }
-
             }
-            conn.setAutoCommit(true);
-        }catch (SQLException e){
+
+        }catch (Exception e){
+            if (e instanceof SQLException){
+                SQLException _e = (SQLException) e;
+                if (e instanceof ru.yandex.clickhouse.except.ClickHouseUnknownException){
+                    // ClickHouse exception, code: 1002, host: 114.115.170.155, port: 8123; Connection pool shut down
+                    if (_e.getErrorCode() == 1002){
+                        return executeBatch(sql,paramList,batchSize);
+                    }
+                }
+            }
+
             effect = null;
-            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数("+index+"):\t"+JDBCUtils.param2String(paramList.get(index)), e);
+            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数集合\n"+JDBCUtils.param2String(paramList), e);
+        }finally {
+            if (conn!=null){
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException e) {
+                    JDBCLogger.error("批量执行,关闭自动提交失败",e);
+                }
+            }
+            closeSession();
         }
         return effect;
     }
@@ -308,29 +283,33 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
         JDBCUtils.filterParam(paramList);
         if (sqlList.size() != paramList.size()) throw new JDBCException("parameters do not match. If there is no value, use 'null' placeholder");
         JDBCSessionManagerAbs m = getManager();
-        int res = 0;
-        if (m.isTransactionInvoking()) throw new JDBCException("transaction in progress");
-
-        m.setTransactionInvoking(true);
+        int res;
         try {
             m.beginTransaction();
-
             for (int i = 0;i<sqlList.size();i++){
-                res = execute(sqlList.get(i),paramList.get(i));
-                if (res < 0) throw new SQLException("transaction execution error,result code is "+res+" , sql: "+ sqlList.get(i)+" , param: "+ Arrays.toString(paramList.get(i)));
+                String sql = sqlList.get(i);
+                Object[] params = paramList.get(i);
+                int result = execute(sql,params);
 
-                if (callback!=null){
-                    res = callback.callback(sqlList.get(i),paramList.get(i),res);
+                if (result < 0) throw new SQLException("事务: SQL执行错误\n" + sql + "\n" +Arrays.toString(params));
+
+                if (result == 0) {
+                    if (callback!=null){
+                        callback.callback(sql,params,result);
+                    }else throw new SQLException("事务: 没有受影响的行\n"+ sql+"\n"+ Arrays.toString(params));
                 }
-                if (res == 0) throw new SQLException("unaffected rows , sql: "+ sqlList.get(i)+" , param: "+ Arrays.toString(paramList.get(i)));
             }
             m.commit();
+            res = 1;
         }catch (Exception e){
-            try { m.rollback(); } catch (Exception ignored) { }
+            try { m.rollback(); } catch (Exception _e) {
+                JDBCLogger.error("事务回滚错误",_e);
+            }
             res = -1;
             JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sqlList+"\n参数:\t"+JDBCUtils.param2String(paramList), e);
+        }finally {
+            closeSession();
         }
-        m.setTransactionInvoking(false);
         return res;
     }
 
@@ -368,6 +347,8 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
             result.clear();
             JDBCLogger.error(
                     "【数据库错误】"+getManager()+"\nSQL:\t"+callSql+"\n参数:\t"+JDBCUtils.param2String(inParam), e);
+        }finally {
+            closeSession();
         }
         return result;
     }

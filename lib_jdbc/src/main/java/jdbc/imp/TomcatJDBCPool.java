@@ -15,6 +15,8 @@ import java.lang.reflect.Field;
 import java.security.InvalidParameterException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Properties;
 
 /**
@@ -70,7 +72,6 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
 
         dataSource = new DataSource();
         dataSource.setPoolProperties(poolProperties);
-        loadDefaultTransactionIsolationLevel();
     }
 
     /*
@@ -133,25 +134,53 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
         poolProperties.setValidationQuery("SELECT 1");
 
         //设置此属性才能运行池清洁器/测试线程
+        // 指明连接是否被空闲连接回收器( 如果有) 进行检验。 如果检测失败， 则连接将被从池中去除。注意： 设置为true 后如果要生效，validationQuery 参数必须设置为非空字符串
         poolProperties.setTestWhileIdle(true);
+        //  指明是否在从池中取出连接前进行检验， 如果检验失败， 则从池中去除连接并尝试取出另一个。注意： 设置为true 后如果要生效，validationQuery 参数必须设置为非空字符串
+        //参考validationInterval以获得更有效的验证
         poolProperties.setTestOnBorrow(true);
+        // 指明是否在归还到池中前进行检验 注意： 设置为true 后如果要生效，validationQuery 参数必须设置为非空字符串
         poolProperties.setTestOnReturn(false);
 
-         //连接空闲的最短时间。默认值为60000（60秒）
-        poolProperties.setMinEvictableIdleTimeMillis(60000);
+        poolProperties.setInitialSize(1);
 
-        //无可用连接时 池将等待连接返回的最大毫秒数
-        poolProperties.setMaxWait(10000);
+        poolProperties.setMaxActive(Runtime.getRuntime().availableProcessors() * 64 + 1);
+
+        // 最大空闲连接： 连接池中容许保持空闲状态的最大连接数量， 超过的空闲连接将被释放， 如果设置为负数表示不限制
+        //如果启用，将定期检查限制连接，如果空闲时间超过minEvictableIdleTimeMillis 则释放连接
+        poolProperties.setMaxIdle(10);
+        //最小空闲连接： 连接池中容许保持空闲状态的最小连接数量， 低于这个数量将创建新的连接， 如果设置为0 则不创建
+        //如果连接验证失败将缩小这个值 ( 参考 testWhileIdle)
+        poolProperties.setMinIdle(1);
+
+         //连接空闲的最短时间。默认值为60000（60秒）
+        poolProperties.setMinEvictableIdleTimeMillis(60 * 1000);
+        // 在空闲连接回收器线程运行期间休眠的时间值， 以毫秒为单位。 如果设置为非正数， 则不运行空闲连接回收器线程
+        //这个值不应该小于1秒，它决定线程多久验证连接或丢弃连接
+        poolProperties.setTimeBetweenEvictionRunsMillis(2 * 60 * 1000);
+        // 在每次空闲连接回收器线程( 如果有) 运行时检查的连接数量
+//        poolProperties.setNumTestsPerEvictionRun(0);
+
+        //无可用连接时 池将等待连接返回的最大毫秒数  如果设置为-1 表示无限等待
+        poolProperties.setMaxWait(-1);
 
         //避免过多的验证，最多只能在此频率下运行验证-时间,以毫秒为单位。
         // 如果连接应进行验证，但之前已在此时间间隔内进行验证，则不会再次对其进行验证。默认值为3000（3秒）
         poolProperties.setValidationInterval(30000);
 
+        boolean isPrintLogAbandoned = true;
+        if (dataBaseType == DataBaseType.clickhouse){
+            isPrintLogAbandoned = false;
+        }
         //标记为放弃连接的应用程序代码记录堆栈跟踪。记录废弃的连接会增加每次连接借用的开销，因为必须生成堆栈跟踪
-        poolProperties.setLogAbandoned(false);
-        //对执行超过指定时间的连接对象进行删除,放置连接泄露
+        poolProperties.setLogAbandoned(isPrintLogAbandoned);
+        //对执行超过指定时间的连接对象进行删除,放止连接泄露
         poolProperties.setRemoveAbandoned(true);
-        poolProperties.setRemoveAbandonedTimeout(300);
+        //泄露的连接可以被删除的超时值， 单位秒  应设置为应用中查询执行最长的时间
+        poolProperties.setRemoveAbandonedTimeout(5 * 60);
+
+        // 如果您希望在连接上建立一道屏障防止连接关闭之后被重新使用，设置这个属性为true。这个属性用来预防线程保持已关闭连接的引用，并在上面执行查询动作
+        poolProperties.setUseDisposableConnectionFacade(true);
 
     }
 
@@ -189,29 +218,33 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
 
     private void setPoolPropertiesValue(PoolProperties poolProperties, Properties props) {
         Field[] fields = poolProperties.getClass().getDeclaredFields();
+
+        String name = null;
+        String value = null;
         for (Field field : fields){
             try {
-                String name = field.getName();//获取属性的名字
-                String value = props.getProperty(name);
+                name = field.getName();//获取属性的名字
+                value = props.getProperty(name);
                 if (value == null) continue;
+
                 field.setAccessible(true);
                 Class<?> filedType =  field.getType();
                 Object oValue = TomcatJDBCTool.convertStringToBaseType(value,filedType);
                 field.set(poolProperties, oValue);
             } catch (Exception e) {
-               e.printStackTrace();
+               JDBCLogger.print("数据库连接池配置参数不正确, name = "+ name+", value = "+ value);
             }
         }
     }
 
     @Override
     protected Connection getInternalConnection() throws SQLException {
-        Connection connection = this.dataSource.getConnection();
-        return connection;
+        return this.dataSource.getConnection();
     }
 
+
     @Override
-    public void setConnectionFail() {
+    public void closeSessionAll() {
         //关闭全部连接
         if (dataSource!=null) {
             //关闭全部连接
@@ -219,14 +252,5 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
         }
     }
 
-    @Override
-    public void unInitialize() {
-        try {
-            //关闭全部
-            setConnectionFail();
-            super.unInitialize();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+
 }

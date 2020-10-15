@@ -5,6 +5,7 @@ import Ice.Current;
 import Ice.Identity;
 import bottle.objectref.ObjectRefUtil;
 import bottle.threadpool.IOThreadPool;
+import bottle.util.Log4j;
 import bottle.util.StringUtil;
 import com.onek.server.inf.*;
 
@@ -21,7 +22,7 @@ import static framework.server.IMServerImps.ClientAttribute.*;
  * @Date: 2019/4/9 17:57
  * 消息推送 服务端实现
  */
-public class IMServerImps extends _InterfacesDisp implements IPersistentMessage, ObjectRefUtil.IClassScan {
+public class IMServerImps extends _InterfacesDisp implements IPersistentMessage {
     /* 客户端属性 */
     static final class ClientAttribute{
         final static HashMap<PushMessageClientPrx,ClientAttribute> clientAttrMap = new HashMap<>();
@@ -97,34 +98,28 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
         this.communicator = communicator;
         if (isPushServer) startPushMessageServer();
     }
-
-    //打印
-    void print(String message){
-        if (communicator!=null) communicator.getLogger().print(Thread.currentThread()+" "+message);
-    }
+    
 
     //开始推送服务
     private void startPushMessageServer(){
         threadPool = new IOThreadPool();
         threadPool.post(heartRunnable());//心跳线程
         threadPool.post(pushRunnable());//消息发送
-        print("推送服务已启动");
+        Log4j.info("推送服务已启动");
     }
 
     //创建消息存储实例
-    @Override
-    public void callback(String classPath) {
+    void findJarAllClass(Class<?> classType) {
         try {
             if (iPushMessageStore!=null) return;
-            //循环类
-            Class<?> cls = Class.forName(classPath);
-            if (!cls.equals(IPersistentMessage.class) && IPersistentMessage.class.isAssignableFrom(cls)){
+
+            if (!classType.equals(IPersistentMessage.class) && IPersistentMessage.class.isAssignableFrom(classType)){
                 //消息存储实体
-                iPushMessageStore = (IPersistentMessage)ObjectRefUtil.createObject(classPath);
-                print("注入推送消息数据存储实现:"+ iPushMessageStore.getClass());
+                iPushMessageStore = (IPersistentMessage) classType.newInstance();
+                Log4j.info("注入推送消息数据存储实现:"+ iPushMessageStore.getClass());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            Log4j.error("IM 创建消息存储实例错误",e);
         }
     }
 
@@ -175,13 +170,13 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
                 if (!pingConnection(prx)){
                     it.remove();
                     removeAttr(clientPrx);
-                    print(
+                    Log4j.info(
                             "Ping测试-ADD-移除客户端: "+communicator.identityToString(clientPrx.ice_getIdentity())
                     );
 
                 }
             }
-            print("【推送服务】添加客户端,类型 = "+clientType+" ,标识 = "+ identityName +" ,相同连接数量:"+ list.size());
+            Log4j.info("【推送服务】添加客户端,类型 = "+clientType+" ,标识 = "+ identityName +" ,相同连接数量:"+ list.size());
 
         }finally {
             lock.unlock();
@@ -230,7 +225,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
                                 if (attribute!=null){ attribute.sendMessageCount++; }
                                 sendMessageSuccess(message);
                             } catch (Exception e) {
-                                print("发送失败\t客户端:" + communicator.identityToString(clientPrx.ice_getIdentity()) +
+                                Log4j.info("发送失败\t客户端:" + communicator.identityToString(clientPrx.ice_getIdentity()) +
                                        "\n\t消息体:" + message +
                                        "\n\t错误原因:" + e);
                             }
@@ -240,7 +235,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
                 }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log4j.error("发送消息错误",e);
         }
 
     }
@@ -347,7 +342,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
                     if (!pingConnection(clientPrx)){
                         it3.remove();
                         removeAttr(clientPrx);
-                        print(
+                        Log4j.info(
                                 "Ping测试-AUTO-移除客户端: "+communicator.identityToString(clientPrx.ice_getIdentity())
                         );
                     }
@@ -356,7 +351,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
                         ClientAttribute attribute = clientAttrMap.get(clientPrx);
 
                         if (attribute!=null){
-                            print("在线客户端信息: "+communicator.identityToString(clientPrx.ice_getIdentity()) + " ADDRESS="+attribute.addressInfo+
+                            Log4j.info("在线客户端信息: "+communicator.identityToString(clientPrx.ice_getIdentity()) + " ADDRESS="+attribute.addressInfo+
                                     ", 开始连接时间:"+ attribute.getConnectStartTime()+" , 连接时长: "+ attribute.getConnectedDurationHumStr());
                         }
 
@@ -374,7 +369,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage,
             clientPrx.ice_invocationTimeout(PING_TIMEOUT_MAX).ice_ping();
             return true;
         } catch (Exception e) {
-//            e.printStackTrace();
+//            e.Log4j.infoStackTrace();
             return false;
         }
     }

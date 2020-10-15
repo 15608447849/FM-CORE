@@ -65,7 +65,7 @@ public class DefaultSyncImp implements SyncI {
     }
 
     private void executeTask(TomcatJDBCPool selectPool, SyncTask task, int index) {
-        JDBCLogger.write("【准备同步】目标数据库: " + selectPool + " 任务: " + task +" 执行下标: "+ index);
+        JDBCLogger.write("【准备同步】目标数据库: " + selectPool + " 任务: " + task + " 执行下标: "+ index);
 
         Tuple2<Boolean, String> result = executeSql(task, new JDBCSessionFacade(selectPool));
 
@@ -81,21 +81,26 @@ public class DefaultSyncImp implements SyncI {
             task.setFailCause(task.getFailCause()+",index="+index+">>"+ failCause);
             JDBCLogger.print("【同步失败】目标数据库: " + selectPool  +" 任务: " + task);
         }
-
     }
 
     @Override
     public boolean executeTask(JDBCSessionFacade facade, SyncTask task) {
         try {
+            // 非mysql不执行
+            if (facade.getManager().getDataBaseType() != DataBaseType.mysql){
+
+                return true;
+            }
 
             if (task.getState() != 0) return true;
 
             TomcatJDBCPool currentPool = (TomcatJDBCPool)facade.getManager();
+
             //获取关联的同步数据库
             List<TomcatJDBCPool> list = TomcatJDBC.getSpecDataBasePoolList(DataBaseType.mysql,currentPool.getDataBaseName());
 
             if (list.size() == 1) {
-                JDBCLogger.write("【同步数据库】" + currentPool.getDataBaseName() + " , 未设置备份库)");
+                //JDBCLogger.write("【同步数据库】" + currentPool.getDataBaseName() + " , 未设置备份库)");
                 return true;
             }
 
@@ -119,7 +124,7 @@ public class DefaultSyncImp implements SyncI {
               return true;
             }
         }catch (Exception e){
-            JDBCLogger.error("同步数据库,执行错误,任务: "+task,e);
+            JDBCLogger.error("同步数据库失败",e);
         }
         return false;
     }

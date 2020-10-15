@@ -331,6 +331,15 @@ public class TomcatJDBCDAO {
     }
 
     /**
+     * 执行原始SQL
+     */
+    public static int[] executeOriginBatch(DataBaseType dataBaseType,String dbName, String sql, List<Object[]> paramList) {
+        JDBCSessionFacade facade = TomcatJDBC.getFacade(dataBaseType,dbName,true);
+        if (facade == null) throw new IllegalArgumentException("数据库类型或库名不正确,找不到可执行的数据库对象");
+        return facade.executeBatch(sql, paramList,paramList.size());
+    }
+
+    /**
      * 原始sql查询
      */
     public static List<Object[]> queryByOriginal(DataBaseType dataBaseType,String databaseName, String sql, Page page, Object... params) {

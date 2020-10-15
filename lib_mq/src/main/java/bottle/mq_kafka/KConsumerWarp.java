@@ -39,8 +39,7 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
     public KConsumerWarp(String serverAddress, String groupId, KFKConsumeMessageCallback callback, String... topicNames) {
         if (callback==null) throw new IllegalArgumentException("没有消息处理实现类 KFKConsumeMessageCallback ");
         if (topicNames==null) throw new IllegalArgumentException("没有可以绑定的主题");
-
-        this.consumer = new KafkaConsumer<>(genConsumerConfig(serverAddress,groupId));
+        this.consumer = new KafkaConsumer<>(callback.initBefore(genConsumerConfig(serverAddress,groupId)));
         this.callback = callback;
 
         // 绑定主题并设置监听

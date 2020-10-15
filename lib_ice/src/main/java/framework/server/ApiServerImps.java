@@ -2,21 +2,14 @@ package framework.server;
 
 import Ice.Communicator;
 import Ice.Current;
-import bottle.objectref.ObjectRefUtil;
 import bottle.util.GoogleGsonUtil;
 import bottle.util.Log4j;
 import bottle.util.StringUtil;
+import bottle.util.TimeTool;
 import com.onek.server.inf.IRequest;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.charset.StandardCharsets;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.LinkedBlockingQueue;
 
 import static bottle.util.StringUtil.printExceptInfo;
 
@@ -49,23 +42,20 @@ public class ApiServerImps extends IMServerImps{
         this.packagePath = packagePath;
     }
 
-    //会被回调- 全类查询所有拦截器对象
+    //查询所有拦截器对象
     @Override
-    public void callback(String classPath)  {
-        super.callback(classPath);
+    public void findJarAllClass(Class<?> classType)  {
+        super.findJarAllClass(classType);
         try {
-            //循环类
-            Class<?> cls = Class.forName(classPath);
-            if ( !cls.equals(Interceptor.class) && Interceptor.class.isAssignableFrom(cls)){
+
+            if ( !classType.equals(Interceptor.class) && Interceptor.class.isAssignableFrom(classType)){
                 //拦截器
-                Interceptor iServerInterceptor = (Interceptor) ObjectRefUtil.createObject(classPath);
+                Interceptor iServerInterceptor = (Interceptor) classType.newInstance();
                 interceptorList.add(iServerInterceptor);
-//                print(Thread.currentThread()+"添加拦截器:"+ iServerInterceptor.getClass());
                 interceptorList.sort(Comparator.comparingInt(Interceptor::getPriority));
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
     }
 
@@ -79,22 +69,21 @@ public class ApiServerImps extends IMServerImps{
                     sb.append("本地调用");
                 }
 
-                sb.append(",路径: " + request.pkg +"." + request.cls +"."+request.method + ",详情: "+ ditail);
+                sb.append(",路径: ").append(request.pkg).append(".").append(request.cls).append(".").append(request.method).append(",详情: ").append(ditail);
 
                 if(!StringUtil.isEmpty(request.param.token)){
-                    sb.append( "\ntoken:\t"+ request.param.token);
+                    sb.append("\ntoken:\t").append(request.param.token);
                 }
                 if(!StringUtil.isEmpty(request.param.json)){
-                    sb.append("\nJSON参数:\t" + request.param.json );
+                    sb.append("\nJSON参数:\t").append(request.param.json);
                 }
                 if(request.param.arrays!=null &&request.param.arrays.length>0){
-                    sb.append("\n数组参数:\t" + Arrays.toString(request.param.arrays));
+                    sb.append("\n数组参数:\t").append(Arrays.toString(request.param.arrays));
                 }
                 if(request.param.pageIndex > 0 && request.param.pageNumber > 0){
-                    sb.append("\n分页参数:\t"+ request.param.pageIndex +" , " +request.param.pageNumber);
-                }
-                ;
-                return writeInputParameters(sb);
+                    sb.append("\n分页参数:\t").append(request.param.pageIndex).append(" , ").append(request.param.pageNumber);
+                };
+                return sb.toString();
     }
 
     //拦截
@@ -110,7 +99,7 @@ public class ApiServerImps extends IMServerImps{
     }
 
     //打印结果
-    private String printResult(Object result) {
+    private String convertResultToJson(Object result) {
         String resultString;
         if (result instanceof String){
             resultString = String.valueOf(result);
@@ -146,14 +135,15 @@ public class ApiServerImps extends IMServerImps{
     //客户端 - 接入服务
     @Override
     public String accessService(IRequest request, Current __current) {
-        long t = System.currentTimeMillis();
-        StringBuilder sb = new StringBuilder();
-        String queryInfo = null;
-        Object result;
+
         Api api = null;
+        Object result = null;//响应结果
+        String queryInfo = null;
+        String executeTimeStr = null;
+        String executeErrorStr = null;
+        String resultString ;
+
         IceSessionContext context = null;
-        boolean isInterceptor = false;
-        boolean isIdempotent = false;
         try {
             //创建context
             context = IceSessionContext.create(__current,packagePath,request);
@@ -163,64 +153,77 @@ public class ApiServerImps extends IMServerImps{
             queryInfo = printParam(request, __current, api==null? "未使用@api注解": api.detail());
 
             if (api!=null && api.idempotent()){
-                isIdempotent = idempotent(context,api.idempotentInterval());//幂等检查
-                if (isIdempotent) throw new IllegalStateException("接口连续调用错误\n" + queryInfo);
+                //幂等检查
+                if (idempotent(context,api.idempotentInterval())) throw new IllegalStateException("接口连续调用错误");
             }
 
-            isInterceptor = interceptor(context);//拦截器
-
-            if (api==null || isAllowPrintInformation && api.inPrint() || isInterceptor ) {
-                //输出参数
-                sb.append("\n"+queryInfo);
-            }
-
-            if (isInterceptor) { // 拦截
+            if (interceptor(context)) { //拦截
                 result = context.getResult();
             }else{
+                long executeTime = System.currentTimeMillis();
                 //具体业务实现调用 返回值不限制
-                long time = System.currentTimeMillis();
                 result = context.call();
-                if (isAllowPrintInformation && api!=null && api.inPrint() && api.timePrint()) {
-                    sb.append("\n执行耗时: " + (System.currentTimeMillis() - time) +" 毫秒");
-                }
+                executeTimeStr = TimeTool.formatDuring(System.currentTimeMillis() - executeTime);
             }
 
         } catch (Exception e) {
-
-            if (e instanceof IllegalStateException && isIdempotent){
-                throw new RuntimeException(e);
-            }
-
-            if(api!=null && !api.inPrint() && queryInfo!=null){
-                sb.append("\n"+queryInfo);
-            }
-
             if(e instanceof NoSuchMethodException){
-                result = Result.create().error(" no matching",e.toString());
+                result = Result.create().error("NO MATCH",e.toString());
             }else{
                 Throwable targetEx = e;
                 if (e instanceof InvocationTargetException) {
                     targetEx =((InvocationTargetException)e).getTargetException();
                 }
-                sb.append(printExceptInfo(targetEx));
-                result = Result.create().error("wrong","execution error");
+                executeErrorStr  = printExceptInfo(targetEx);
+                result = Result.create().error("接口("+ ( context == null?"unknown":context.getCallerFullPath() ) +")错误","EXECUTE ERROR");
+            }
+        }finally {
+            resultString =  convertResultToJson(result);
+            if (context!=null){
+                context.destroy();
             }
         }
 
-        String resultString =  printResult(result);
+       recodeInfoAndPrintConsole(api,queryInfo,resultString,executeTimeStr,executeErrorStr);
 
-        if (isAllowPrintInformation && api!=null && api.outPrint() || isInterceptor){
-            sb.append("\n响应数据:\t" +resultString);
-        }
-
-        if (sb.length()>0){
-            print(sb.toString() +"\n整体耗时: " + (System.currentTimeMillis() - t)+" 毫秒");
-        }
-
-        if (context!=null){
-            context.destroy();
-        }
         return resultString;
+    }
+
+    //记录请求过程并打印结果
+    private void recodeInfoAndPrintConsole(Api api,String queryInfo, String resultString, String executeTimeStr, String executeErrorStr) {
+        StringBuilder recode = new StringBuilder();
+        //请求信息
+        if (queryInfo!=null) recode.append("\n").append(queryInfo);
+        //响应信息
+        if (resultString!=null) recode.append("\n响应内容:\t").append(resultString);
+        //执行请求耗时
+        if(executeTimeStr!=null) recode.append("\n执行耗时:\t").append(executeTimeStr);
+        //错误信息
+        if (executeErrorStr!=null) recode.append("\n").append(executeErrorStr);
+
+        if (recode.length() > 0) writeInputParameters(recode);
+
+        if (isAllowPrintInformation){
+            recode = new StringBuilder();
+
+            if(api!=null && api.inPrint()  || executeErrorStr!=null ){
+                recode.append("\n").append(queryInfo);
+            }
+
+            if(api!=null && api.outPrint()){
+                recode.append("\n响应内容:\t").append(resultString);
+                if (executeTimeStr!=null){
+                    recode.append("\n执行耗时:\t").append(executeTimeStr);
+                }
+            }
+
+            if (executeErrorStr!=null){
+                recode.append("\n错误栈信息\n").append(executeErrorStr);
+            }
+
+            // 控制台输出
+            if (recode.length()>0) System.out.println(recode);
+        }
     }
 
 

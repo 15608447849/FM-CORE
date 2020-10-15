@@ -44,6 +44,10 @@ public class KConfigBuild {
 
             // 发送内存缓冲区大小
             configs.put("buffer.memory",5 * 1024 * 1024);
+
+            //发送消息的最大值
+            configs.put("max.request.size",5 * 1024 * 1024);
+
             // 控制 KafkaProducer.send() 和 KafkaProducer.partitionsFor() 将阻塞多长时间
             configs.put("max.block.ms",mode == 0 ? 30 * 1000 : 60 * 1000);
 
@@ -62,6 +66,7 @@ public class KConfigBuild {
             configs.put("batch.size",mode == 0 ? 0 : 5 * 1024 * 1024);
             // 消息批次最多等待时间 毫秒
             configs.put("linger.ms", mode == 0 ? 0 : 10 * 1000);
+
 
             return configs;
     }
@@ -83,7 +88,7 @@ public class KConfigBuild {
 //        configs.put("auto.offset.reset","latest");
 
         //服务器拉取消息返回的最小数据量 字节
-        configs.put("fetch.min.bytes",1024 * 1024);
+        configs.put("fetch.min.bytes",5 * 1024 * 1024);
         //如果没有足够的数据满足 最多等待多久返回有效数据 毫秒
         configs.put("fetch.max.wait.ms", 45 * 1000);
 

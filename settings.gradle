@@ -1,4 +1,5 @@
 rootProject.name = 'FM-CORE'
+include 'mytest'
 include 'lib_mltcp'
 include 'lib_ping'
 include 'lib_mq'
@@ -7,4 +8,5 @@ include 'lib_jdbc'
 include 'lib_cache'
 include 'core-lib-erp'
 include 'core-lib-drug'
+include 'core-lib-dataware'
 

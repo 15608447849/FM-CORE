@@ -16,21 +16,11 @@ public interface SessionManagerI<S> {
 
     void closeSession();
 
-    void loadDefaultTransactionIsolationLevel();
-
-    void setSessionTransactionIsolationLevel(TransactionIsolationLevel transIsoLevel);
-
-    TransactionIsolationLevel getCurrentTransactionIsolationLevel();
-
-    boolean isTransactionInvoking();
-
-    void setTransactionInvoking(boolean isInvoking);
-
     void beginTransaction();
 
     void commit();
 
     void rollback();
 
-    void setConnectionFail();
+    void closeSessionAll();
 }

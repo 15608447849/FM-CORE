@@ -122,7 +122,7 @@ public class TomcatJDBC {
         for (String fileName : configList){
             try(InputStream is = getResourceConfig(fileName)){
                 if (is == null){
-                    JDBCLogger.print("尝试加载 fileName: " + fileName +" InputStream = " + is);
+                    JDBCLogger.print("【警告】 尝试加载数据库配置文件 " + fileName +" 无法获取文件流内容");
                     continue;
                 }
                 genPoolObjectAlsoAddGroup(is);
@@ -175,7 +175,8 @@ public class TomcatJDBC {
             list = entry.getValue();
             masterPool = list.get(0);
             createDataBaseInfo(masterPool);
-            JDBCLogger.print(printInitInfo(masterPool));
+            //JDBCLogger.print(printInitInfo(masterPool));
+            masterPool.closeSession();
         }
     }
 
@@ -294,17 +295,17 @@ public class TomcatJDBC {
         return sb.toString();
     }
 
-    /* 检测连接是否有效 */
+    /* 存在备份库的情况下触发, 检测主库连接是否有效,无效切换到备份库进行操作 */
     private static JDBCSessionFacade checkDBConnection(JDBCSessionFacade facade, List<TomcatJDBCPool> list) {
 
         if (facade.checkDBConnectionValid()) return facade;
         //此连接池无效
-        JDBCLogger.print("【异常】连接不可用,请尝试恢复,数据库连接信息: "+ facade.getManager().getAddress()+" "+facade.getManager().getDataBaseName()+" "+ facade.getManager().getSeq());
+        JDBCLogger.print("【异常】数据库连接不可用,请尝试恢复,数据库信息: "+ facade.getManager().getAddress()+" "+facade.getManager().getDataBaseName()+" "+ facade.getManager().getSeq());
         //获取任意一个连接
         for (TomcatJDBCPool pool : list){
             facade.setManager(pool);
             if (facade.checkDBConnectionValid()) {
-                JDBCLogger.print("【异常】找到一个连接池替代,数据库连接信息: "+ facade.getManager().getAddress()+" "+facade.getManager().getDataBaseName()+" "+ facade.getManager().getSeq());
+                JDBCLogger.print("【异常】找到一个备份数据库,数据库信息: "+ facade.getManager().getAddress()+" "+facade.getManager().getDataBaseName()+" "+ facade.getManager().getSeq());
                 return facade;
             }
         }

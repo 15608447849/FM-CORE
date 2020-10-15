@@ -14,8 +14,6 @@ import java.sql.SQLException;
  */
 public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection> {
 
-    private TransactionIsolationLevel currentTransIsoLevel;
-
     protected DataBaseType dataBaseType;
     protected String address;
     protected String dataBaseName;
@@ -45,34 +43,6 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
     }
 
     @Override
-    public void loadDefaultTransactionIsolationLevel() {
-        try {
-            Connection session = getSession();
-            int level = session.getTransactionIsolation();
-            this.currentTransIsoLevel = TransactionIsolationLevel.fromInt(level);
-        } catch (SQLException e) {
-            throw new JDBCException(e);
-        } finally {
-            this.closeSession();
-        }
-    }
-
-    @Override
-    public TransactionIsolationLevel getCurrentTransactionIsolationLevel() {
-        return this.currentTransIsoLevel;
-    }
-
-    @Override
-    public void setSessionTransactionIsolationLevel(TransactionIsolationLevel transIsoLevel) {
-        try {
-            Connection session = getSession();
-            session.setTransactionIsolation(transIsoLevel.toInt());
-        } catch (SQLException e) {
-            throw new JDBCException(e);
-        }
-    }
-
-    @Override
     public void beginTransaction() {
         Connection session = getSession();
         try {
@@ -92,44 +62,43 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
         } finally {
             try {
                 session.setAutoCommit(true);
-            } catch (SQLException e) {
-                JDBCLogger.error(getClass().getSimpleName()+" - commit",e);
-
-            }
+            } catch (SQLException ignored) { }
         }
     }
 
     @Override
     public void rollback() {
-        Connection session = getSession();
-        try {
-            session.rollback();
-        } catch (SQLException e) {
-            throw new JDBCException(e);
-        } finally {
+            Connection session = getSession();
             try {
-                session.setAutoCommit(true);
+                session.rollback();
             } catch (SQLException e) {
-                JDBCLogger.error(getClass().getSimpleName()+" - rollback",e);
+                throw new JDBCException(e);
+            } finally {
+                try {
+                    session.setAutoCommit(true);
+                } catch (SQLException ignored) { }
             }
-        }
+
     }
+
 
     @Override
     public Connection getSession() {
         Connection session = super.getSession();
         try {
+//            JDBCLogger.print(Thread.currentThread().getName() +" < ThreadLocal获取 > "+session);
             if (session == null || session.isClosed()) {
-
                 session = getInternalConnection();
                 if (session == null || session.isClosed() ) throw new SQLException("db connection non-existent or closed");
-                setSession(session);
 //                JDBCLogger.print(Thread.currentThread().getName() +" < 创建 > "+session);
+                setSession(session);
+//                JDBCLogger.print(Thread.currentThread().getName() +" < 连接池获取 > "+session);
             }
-//            JDBCLogger.print(Thread.currentThread().getName() +" < 获取 > "+session);
+
+
             return session;
         } catch (SQLException e) {
-            setSession(null);
+            closeSession();
             throw new JDBCException(e);
         }
     }
@@ -139,11 +108,20 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
     @Override
     public void closeSession() {
         Connection session = super.getSession();
-        setSession(null);
         if (session != null) {
             try {
-                session.close();
+                if (!session.getAutoCommit()){
+                    //不允许返回连接
+                    return;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            setSession(null);
+            try {
 //                JDBCLogger.print(Thread.currentThread().getName() +" < 关闭 > "+session);
+                session.close();// 返还连接
+
             } catch (SQLException e) {
                 throw new JDBCException(e);
             }
@@ -152,13 +130,13 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
 
     @Override
     public void unInitialize() {
-        closeSession();
-        super.unInitialize();
+        try {
+            super.unInitialize();
+            closeSessionAll();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
-
-
-
-
 
     @Override
     public String toString() {

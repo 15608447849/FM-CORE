@@ -14,7 +14,7 @@ import java.util.List;
 public class ReadWriteSeparateJDBCFacadeWrap extends MasterSlaveSyncJDBCFacadeWrap{
     private JDBCSessionFacade reader;
 
-    public ReadWriteSeparateJDBCFacadeWrap(JDBCSessionFacade op) {
+    ReadWriteSeparateJDBCFacadeWrap(JDBCSessionFacade op) {
         super(op);
         reader = TomcatJDBC.getFacade(op.getManager().getDataBaseType(),op.getManager().getDataBaseName(),false);
     }
@@ -29,7 +29,6 @@ public class ReadWriteSeparateJDBCFacadeWrap extends MasterSlaveSyncJDBCFacadeWr
             return op.query(sql,params,page);
         }
     }
-
 
     @Override
     public <T> List<T> query(String sql, Object[] params, Class<T> beanClass,Page page) {

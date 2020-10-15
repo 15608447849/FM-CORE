@@ -17,6 +17,9 @@ import javax.management.MBeanServerInvocationHandler;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
+import java.util.Date;
+
+import static bottle.util.Log4j.sdf;
 
 /**
  * @author 11842
@@ -69,16 +72,21 @@ public class MQPoolUtil {
         Session session = null;
         MessageProducer messageProducer = null;
         try{
+            Log4j.writeLogToSpecFile("./logs/activemq/producer",Log4j.sdfDict.format(new Date()),
+                    String.format("%s [发送] %s\t%s\n", Log4j.sdf.format(new Date()),msgType, message));
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
             Destination destination = session.createQueue(msgType);
             messageProducer = session.createProducer(destination);
             messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);//持久化
             TextMessage textMessage = session.createTextMessage(message);
             messageProducer.send(textMessage);
-            Log4j.debug(String.format("发送消息到MQ, 类型:%s\n\t%s", msgType, message));
+            Log4j.writeLogToSpecFile("./logs/activemq/producer",Log4j.sdfDict.format(new Date()),
+                    String.format("%s [完成] %s\t%s\n", Log4j.sdf.format(new Date()),msgType, message));
             return true;
         }catch (Exception e){
-            Log4j.error("发送消息到MQ失败",e);
+            Log4j.writeLogToSpecFile("./logs/activemq/producer",Log4j.sdfDict.format(new Date()),
+                    String.format("%s [失败] %s\t%s\n", Log4j.sdf.format(new Date()),msgType, message));
+            Log4j.error("[activeMQ] 发送消息失败,类型 = "+msgType,e);
         }finally {
             try {
                 if (messageProducer != null) {
@@ -96,10 +104,29 @@ public class MQPoolUtil {
     }
 
     public static abstract class AutoRegConsumer implements MessageListener{
-        protected AutoRegConsumer(String msgType){
+        private final String msgType;
+
+        public AutoRegConsumer(String msgType){
+            this.msgType = msgType;
             MQPoolUtil.addConsumer(msgType,this);
         }
+
+        @Override
+        public void onMessage(Message message) {
+            try{
+                TextMessage textMessage = (TextMessage) message;
+                String messageStr = textMessage.getText();
+                Log4j.writeLogToSpecFile("./logs/activemq/consumer/"+msgType,Log4j.sdfDict.format(new Date()),
+                        Log4j.sdf.format(new Date())+"\t"+messageStr+"\n");
+                _onMessage(messageStr);
+            }catch (Exception e){
+              Log4j.error("[activeMQ] 接受消息异常",e);
+            }
+        }
+
+        abstract public void _onMessage(String message);
     }
+
 
     /* 添加监听者 */
     public static void addConsumer(String msgType,MessageListener listener){

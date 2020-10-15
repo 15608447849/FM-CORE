@@ -2,10 +2,21 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':lib_ice')
     compile project(':lib_mq')
+//    compile project(':lib_ping')
 }
 
 shadowJar {
+//    minimize()
     baseName = 'core-lib-drug'
     classifier = null
     version = null
+//    dependencies{
+//        exclude(project(':lib_ice'))
+//        exclude(project(':lib_mltcp'))
+//
+//    }
+//    attributes(
+//            'Main-Class': 'xx.xx.xx.xx.main'
+//    )
+
 }

@@ -1,0 +1,33 @@
+#注册中心-从
+IceGrid.InstanceName=DRUG
+IceGrid.Registry.ReplicaName=DRUG-SLAVE
+Ice.ProgramName=DRUG-SLAVE
+
+#主注册中心信息
+Ice.Default.Locator=DRUG/Locator:tcp -h 192.168.0.176 -p 4061:ws -h 192.168.0.176 -p 4062
+#客户端访问注册服务器的端点信息
+IceGrid.Registry.Client.Endpoints=tcp -h 192.168.0.176 -p 4071:ws -h 192.168.0.176 -p 4072
+#服务访问注册服务器的端点信息
+IceGrid.Registry.Server.Endpoints=tcp -h 192.168.0.176  -p 40710:ws -h 192.168.0.176  -p 40720
+#内部访问端点信息，节点用这个端口和注册服务通信
+IceGrid.Registry.Internal.Endpoints=tcp -h 192.168.0.176  -p 40711:ws -h 192.168.0.176  -p 40721
+
+IceGrid.Registry.Data=./reg-slave-db
+
+IceGrid.Registry.PermissionsVerifier=DRUG/NullPermissionsVerifier     
+IceGrid.Registry.AdminPermissionsVerifier=DRUG/NullPermissionsVerifier
+IceGrid.Registry.SSLPermissionsVerifier=DRUG/NullSSLPermissionsVerifier
+IceGrid.Registry.AdminSSLPermissionsVerifier=DRUG/NullSSLPermissionsVerifier  
+
+#定义节点是否和注册服务并置在一起
+IceGrid.Node.CollocateRegistry=0	
+	          
+
+IceGridAdmin.Username=admin          
+IceGridAdmin.Password=admin
+
+
+
+Ice.Trace.Network=3
+IceGrid.Registry.Trace.Node=3	
+IceGrid.Registry.Trace.Replica=3

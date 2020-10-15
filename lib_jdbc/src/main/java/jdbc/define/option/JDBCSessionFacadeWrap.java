@@ -16,7 +16,7 @@ public class JDBCSessionFacadeWrap implements DaoApi{
     protected JDBCSessionFacade op;
 
     public JDBCSessionFacadeWrap(JDBCSessionFacade op) {
-        if (op == null || !op.checkDBConnectionValid()) throw new JDBCException("invalid db connection pool object.");
+        if (op == null) throw new JDBCException("无效的数据库连接操作对象");
         this.op = op;
     }
 
