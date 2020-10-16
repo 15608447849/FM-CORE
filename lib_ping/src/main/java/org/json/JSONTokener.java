@@ -16,19 +16,19 @@
 
 package org.json;
 
-// Note: this class was written without inspecting the non-free org.org.json sourcecode.
+// Note: this class was written without inspecting the non-free json sourcecode.
 
 /**
  * Parses a JSON (<a href="http://www.ietf.org/rfc/rfc4627.txt">RFC 4627</a>)
  * encoded string into the corresponding object. Most clients of
  * this class will use only need the {@link #JSONTokener(String) constructor}
  * and {@link #nextValue} method. Example usage: <pre>
- * String org.json = "{"
+ * String json = "{"
  *         + "  \"query\": \"Pizza\", "
  *         + "  \"locations\": [ 94043, 90210 ] "
  *         + "}";
  *
- * JSONObject object = (JSONObject) new JSONTokener(org.json).nextValue();
+ * JSONObject object = (JSONObject) new JSONTokener(json).nextValue();
  * String query = object.getString("query");
  * JSONArray locations = object.getJSONArray("locations");</pre>
  *

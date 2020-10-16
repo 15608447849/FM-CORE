@@ -1,0 +1,20 @@
+#节点名 必须唯一
+IceGrid.Node.Name=node-globalServer
+#节点被访问的端口信息，注册服务使用这个端点和节点通信，通常设为default
+IceGrid.Node.Endpoints=tcp
+#对外映射的端口
+#IceGrid.Node.PublishedEndpoints=tcp -h 114.116.137.5 -p 20002:ws -h 114.116.137.5 -p 30002
+#节点相关数据的存储目录
+IceGrid.Node.Data=./node-db
+#注册中心
+Ice.Default.Locator=ERP/Locator:tcp -h 192.168.1.145 -p 5061:ws -h 192.168.1.145 -p 5062
+#指定错误日志文件,若为指定，则直接在node1目录下生成
+#Ice.StdErr=./stdErr.log
+#Ice.StdOut=./stdOut.log
+# 激活器跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Activator=3
+# 对象适配器跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Adapter=3
+# 服务跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Server=3
+

@@ -1,0 +1,126 @@
+﻿<icegrid>
+ <application name="ERP">
+		 <properties id="MultiThreaded">
+            <property name="Ice.ThreadPool.Client.Size" value="5" />
+			<property name="Ice.ThreadPool.Client.SizeMax" value="30" />
+			<property name="Ice.ThreadPool.Server.Size" value="16" />
+            <property name="Ice.ThreadPool.Server.SizeMax" value="21" />
+			<property name="Ice.ThreadPool.Client.ThreadIdleTime" value="300" />
+			<property name="Ice.ThreadPool.Server.ThreadIdleTime" value="300" />
+			<property name="IceBox.InheritProperties" value="1" />
+			<property name="Ice.Override.ConnectTimeout" value="5000" />
+			<property name="Ice.Override.Timeout" value="10000" />
+			<property name="IceBox.Trace.ServiceObserver" value="1" />
+			<property name="Ice.Default.LocatorCacheTimeout" value="300" />
+			<property name="Ice.BackgroundLocatorCacheUpdates" value="1" />
+			<property name="Ice.ACM.Client.Timeout" value="300" /> 
+            <property name="Ice.ACM.Server.Timeout" value="300" /> 
+			<property name="Ice.ACM.Client.Heartbeat" value="2" />
+            <property name="Ice.ACM.Server.Heartbeat" value="2" />
+			<property name="Ice.ACM.Client.Close" value="3" />
+			<property name="Ice.ACM.Server.Close" value="3" />
+		</properties>
+		
+		
+	<!-- 通用模板 -->
+	<server-template id="temp" >
+
+		<parameter name="serverName"/>
+
+		<parameter name="jarPath"/>
+
+		<parameter name="index"/>
+
+		<parameter name="group"/>
+		
+		<parameter name="im" default="false"/>
+		
+		<parameter name="package" default="drug.erp"/>
+
+		<parameter name="pubip" default="127.0.0.1"/>
+
+		<parameter name="pvaip" default="127.0.0.1"/>
+		
+		<parameter name="tport" default="5001"/>
+
+		<parameter name="wport" default="5002"/>
+
+		<!-- on-demand -->
+		<icebox id = "${group}-box-${index}" exe="java" activation="always">
+
+			<properties>
+				<properties refid="MultiThreaded"/>
+			</properties>
+
+			<option>-Xmx1024M</option>
+
+			<!-- <option>-Xdebug</option> -->
+
+			<!-- <option>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</option> -->
+
+			<!-- <option>-Dindex=${index}</option> -->
+
+			<!-- <option>-Dgroup=${group}</option> -->
+
+			<option>IceBox.Server</option>
+
+			<option>--Ice.MessageSizeMax=4096</option>
+
+
+			<env>CLASSPATH=${jarPath}</env>
+
+			<service name="${serverName}_${index}" entry="framework.server.ServerIceBoxImp ${group} ${im} ${package}">
+			
+			<properties>
+	            <property name="${serverName}_${index}.PublishedEndpoints" value="tcp -h ${pubip} -p ${tport}:ws -h ${pubip} -p ${wport}"/>
+	         </properties>
+
+			<adapter name="${serverName}_${index}" id="${serverName}_${index}" endpoints="tcp -h ${pvaip} -p ${tport}:ws -h ${pvaip} -p ${wport}" replica-group="${group}">
+				<object identity="${serverName}_${index}" type="::inf::Interfaces" />
+			</adapter>	
+
+			</service>
+				
+		</icebox>
+	</server-template>
+
+	 <!-- 业务主节点 -->
+	 <replica-group id ="globalServer">
+		 <load-balancing type="adaptive" n-replicas="0"/>
+		 <object identity="globalServer" type="::inf::Interfaces" />
+	 </replica-group>
+	 <node name="node-globalServer">
+		 <server-instance template="temp" group="globalServer" serverName="globalService" index="1" jarPath="../lib/erp-global.jar"/>
+	 </node>
+
+	 <!-- 报表查询节点 -->
+	 <replica-group id ="reportServer">
+		 <load-balancing type="adaptive" n-replicas="0"/>
+		 <object identity="reportServer" type="::inf::Interfaces" />
+	 </replica-group>
+	 <node name="node-reportServer">
+		 <server-instance template="temp" group="reportServer" serverName="reportService" index="1" jarPath="../lib/erp-report.jar"/>
+	 </node>
+	 
+     <!-- 通讯节点 -->
+	 <replica-group id ="imServer">
+		 <load-balancing type="adaptive" n-replicas="0"/>
+		 <object identity="imServer" type="::inf::Interfaces" />
+	 </replica-group>
+	 <node name="node-imServer">
+		 <server-instance template="temp" group="imServer" serverName="imService" index="1" jarPath="../lib/erp-im.jar" im="true"/>
+	 </node>
+
+	<!-- 厂商对接 -->
+	 <replica-group id ="smdockServer">
+		 <load-balancing type="adaptive" n-replicas="0"/>
+		 <object identity="smdockServer" type="::inf::Interfaces" />
+	 </replica-group>
+	 <node name="node-smdockServer">
+		 <server-instance template="temp" group="smdockServer" serverName="smdockService" index="1" jarPath="../lib/erp-smdock.jar"/>
+	 </node>
+
+	
+
+</application>
+</icegrid>

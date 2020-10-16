@@ -1,0 +1,28 @@
+# Configuration file (09/08/20 22:52:47.265)
+
+# Server configuration
+Ice.Admin.ServerId=imServer-box-1
+Ice.Admin.Endpoints=tcp -h localhost
+Ice.ProgramName=imServer-box-1
+IceBox.Service.imService_1=framework.server.ServerIceBoxImp imServer true drug.erp --Ice.Config='C:/IDEAWORK/FM-CORE/lib_ice/src/main/node-db/servers/imServer-box-1/config/config_imService_1'
+IceBox.LoadOrder=imService_1
+# Server descriptor properties
+Ice.ThreadPool.Client.Size=5
+Ice.ThreadPool.Client.SizeMax=50
+Ice.ThreadPool.Server.Size=5
+Ice.ThreadPool.Server.SizeMax=21
+Ice.ThreadPool.Client.ThreadIdleTime=300
+Ice.ThreadPool.Server.ThreadIdleTime=300
+IceBox.InheritProperties=1
+Ice.Override.ConnectTimeout=5000
+Ice.Override.Timeout=10000
+IceBox.Trace.ServiceObserver=1
+Ice.Default.LocatorCacheTimeout=300
+Ice.BackgroundLocatorCacheUpdates=1
+Ice.ACM.Client.Timeout=300
+Ice.ACM.Server.Timeout=300
+Ice.ACM.Client.Heartbeat=2
+Ice.ACM.Server.Heartbeat=2
+Ice.ACM.Client.Close=3
+Ice.ACM.Server.Close=3
+Ice.Default.Locator=ERP/Locator:tcp -h 114.116.149.145 -p 5061:ws -h 114.116.149.145 -p 5062

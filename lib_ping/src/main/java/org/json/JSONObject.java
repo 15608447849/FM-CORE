@@ -18,7 +18,7 @@ package org.json;
 
 import java.util.*;
 
-// Note: this class was written without inspecting the non-free org.org.json sourcecode.
+// Note: this class was written without inspecting the non-free json sourcecode.
 
 /**
  * A modifiable set of name/value mappings. Names are unique, non-null strings.

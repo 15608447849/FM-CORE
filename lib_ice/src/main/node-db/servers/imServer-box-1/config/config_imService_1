@@ -1,0 +1,9 @@
+# Configuration file (09/08/20 22:52:47.265)
+
+# Object adapter imService_1
+imService_1.Endpoints=tcp -h 127.0.0.1 -p 6002:ws -h 127.0.0.1 -p 7002
+imService_1.AdapterId=imService_1
+imService_1.ReplicaGroupId=imServer
+# Service descriptor properties
+imService_1.PublishedEndpoints=tcp -h 220.168.55.222 -p 8888:ws -h 220.168.55.222 -p 8889
+Ice.Default.Locator=ERP/Locator:tcp -h 114.116.149.145 -p 5061:ws -h 114.116.149.145 -p 5062

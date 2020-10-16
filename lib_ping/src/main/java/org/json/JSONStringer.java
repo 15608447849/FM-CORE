@@ -20,14 +20,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-// Note: this class was written without inspecting the non-free org.org.json sourcecode.
+// Note: this class was written without inspecting the non-free json sourcecode.
 
 /**
  * Implements {@link JSONObject#toString} and {@link JSONArray#toString}. Most
  * application developers should use those methods directly and disregard this
  * API. For example:<pre>
  * JSONObject object = ...
- * String org.json = object.toString();</pre>
+ * String json = object.toString();</pre>
  *
  * <p>Stringers only encode well-formed JSON strings. In particular:
  * <ul>

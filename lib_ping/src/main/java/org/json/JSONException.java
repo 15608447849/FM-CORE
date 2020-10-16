@@ -16,7 +16,7 @@
 
 package org.json;
 
-// Note: this class was written without inspecting the non-free org.org.json sourcecode.
+// Note: this class was written without inspecting the non-free json sourcecode.
 
 /**
  * Thrown to indicate a problem with the JSON API. Such problems include:

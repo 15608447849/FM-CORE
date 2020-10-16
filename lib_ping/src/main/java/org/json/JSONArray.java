@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-// Note: this class was written without inspecting the non-free org.org.json sourcecode.
+// Note: this class was written without inspecting the non-free json sourcecode.
 
 /**
  * A dense indexed sequence of values. Values may be any mix of

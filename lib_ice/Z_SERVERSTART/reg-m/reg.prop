@@ -1,0 +1,49 @@
+
+#实例名
+IceGrid.InstanceName=ERP
+ 
+# 客户端访问注册服务器的端点信息
+IceGrid.Registry.Client.Endpoints=tcp -h 127.0.0.1 -p 5061:ws -h 127.0.0.1 -p 5062
+# 对外映射端口
+# IceGrid.Registry.Client.PublishedEndpoints=tcp -h 114.116.137.5 -p 5061:ws -h 114.116.137.5 -p 5062
+
+# 服务访问注册服务器的端点信息
+IceGrid.Registry.Server.Endpoints=tcp
+#内部访问端点信息，通常是default，节点用这个端口和注册服务通信
+IceGrid.Registry.Internal.Endpoints=tcp
+
+#持久化文件存放目录，需要手工创建目录
+IceGrid.Registry.Data=./reg-db
+
+#动态部署
+IceGrid.Registry.DynamicRegistration=1
+ 
+IceGrid.Registry.PermissionsVerifier=ERP/NullPermissionsVerifier
+IceGrid.Registry.AdminPermissionsVerifier=ERP/NullPermissionsVerifier
+IceGrid.Registry.SSLPermissionsVerifier=ERP/NullSSLPermissionsVerifier
+IceGrid.Registry.AdminSSLPermissionsVerifier=ERP/NullSSLPermissionsVerifier
+ 
+#指定主注册服务的名称
+#Ice.ProgramName=Master    
+#指定主注册服务跟踪节点信息的级别（0~3），默认为0
+IceGrid.Registry.Trace.Node=3       
+#指定主/从热备注册服务的跟踪级别（0~3），默认为0
+IceGrid.Registry.Trace.Replica=3   
+
+#定义节点是否和注册服务并置在一起，设为1时并置，设为0时不并置
+#IceGrid.Node.CollocateRegistry=0 
+
+# 激活器跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Activator=3       
+
+# 对象适配器跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Adapter=3
+          
+# 服务跟踪级别，通常有0，1，2，3级，默认是0
+IceGrid.Node.Trace.Server=3
+
+Ice.Trace.Network=3
+
+# Dummy username and password for icegridadmin.
+IceGridAdmin.Username=admin	
+IceGridAdmin.Password=admin
