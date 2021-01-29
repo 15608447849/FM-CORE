@@ -7,8 +7,10 @@ import com.onek.server.inf.IParam;
 import com.onek.server.inf.IRequest;
 import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
-import java.util.Arrays;
+
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 /**
  * @Author: leeping
@@ -17,17 +19,17 @@ import java.util.Locale;
  */
 public class IceClient {
 
-    private static class ReqStore{
+    private static class RequestStore {
         private InterfacesPrx curPrx;
         private IRequest request;
     }
 
-    private static final ThreadLocal<ReqStore> threadLocalStore = new ThreadLocal<>();
+    private static final ThreadLocal<RequestStore> threadLocalStore = new ThreadLocal<>();
 
-    private ReqStore getStore(){
-        ReqStore store = threadLocalStore.get();
+    private RequestStore getCurrentThreadRequestStore(){
+        RequestStore store = threadLocalStore.get();
         if (store == null){
-            store = new ReqStore();
+            store = new RequestStore();
             threadLocalStore.set(store);
         }
         return store;
@@ -41,23 +43,24 @@ public class IceClient {
 
     private int timeout = 300000;
 
-
     private IceClient(Communicator communicator) {
         ic = communicator;
         isInside = true;
         args = null;
     }
 
-   /*
-        serverAdds = IP_1:PORT_1;IP_2:PORT_2;
-        argsStr = idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096
-   * */
-    public IceClient(String tag,String serverAdds,String argsStr) {
-        args = initParams(tag,serverAdds,argsStr.split(","));
+    /** 内部调用的客户端通讯器 */
+    public static IceClient Inside(Communicator communicator) {
+        return new IceClient(communicator);
     }
 
     public IceClient(String tag,String serverAdds) {
-        args = initParams(tag,serverAdds);
+        args = initParams(tag,serverAdds,"idleTimeOutSeconds=300","--Ice.MessageSizeMax=4096");
+    }
+
+    /** serverAdds = IP_1:PORT_1;IP_2:PORT_2; argsStr = idleTimeOutSeconds=300,--Ice.MessageSizeMax=4096 */
+    public IceClient(String tag,String serverAdds,String argsStr) {
+        args = initParams(tag,serverAdds,argsStr.split(","));
     }
 
     private String[] initParams(String tag,String serverAdds,String... iceArgs) {
@@ -89,15 +92,13 @@ public class IceClient {
         return ic;
     }
 
-    public String getEnvId(){
-        return Arrays.toString(args);
-    }
-
     public IceClient setTimeout(int timeout) {
         this.timeout = timeout;
         return this;
     }
 
+    /* 打开连接 */
+    synchronized
     public IceClient startCommunication() {
         if (ic == null) {
             ic = Ice.Util.initialize(args);
@@ -105,6 +106,7 @@ public class IceClient {
         return this;
     }
 
+    /* 关闭连接 */
     synchronized
     public IceClient stopCommunication() {
         if (ic != null) {
@@ -116,15 +118,18 @@ public class IceClient {
         return this;
     }
 
-    public IceClient settingProxy(String serverName){
-        ReqStore store = getStore();
+    /* 设置ICE服务名 */
+    private IceClient setProxy(String serverName){
+        RequestStore store = getCurrentThreadRequestStore();
         Ice.ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
         store.curPrx =  InterfacesPrxHelper.checkedCast(base);
         return this;
     }
 
-    public IceClient settingReq(String token,String cls,String med){
-        ReqStore store = getStore();
+    /* 设置ICE请求信息 */
+    private IceClient setRequest(String token,String cls,String med){
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
         store.request = new IRequest();
         store.request.cls = cls;
         store.request.method = med;
@@ -132,114 +137,208 @@ public class IceClient {
         return this;
     }
 
-    public IceClient settingReq(String token,String serverName,String clazz,String method){
-        return settingProxy(serverName).settingReq(token,clazz,method);
+    /* 设置ICE 服务,请求信息 */
+    public IceClient setRequest(String token,String serverName,String clazz,String method){
+        return setProxy(serverName).setRequest(token,clazz,method);
     }
 
-    public IceClient setServerAndRequest(String serverName,String clazz,String method){
-        return settingProxy(serverName).settingReq("",clazz,method);
+    public IceClient setAnonymousRequest(String serverName,String clazz,String method){
+        return setProxy(serverName).setRequest("Anonymous",clazz,method);
     }
 
-    public IceClient setArrayParams(Object... objects){
+    /* 设置数组参数 */
+    public IceClient setStringArrayParam(String[] array){
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
+        store.request.param.arrays = array;
+        return this;
+    }
+
+    /* 设置JSON参数*/
+    public IceClient setJsonParam(String json){
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
+        store.request.param.json = json;
+        return this;
+    }
+    /* 设置拓展参数 */
+    public IceClient setExtendParam(String extend){
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
+        store. request.param.extend = extend;
+        return this;
+    }
+
+    /* 设置数组参数 */
+    public IceClient setObjectArrayParam(Object[] objects){
         String[] arr = new String[objects.length];
         for (int i = 0; i< objects.length; i++) {
             arr[i] = String.valueOf(objects[i]);
         }
-        return settingParam(arr);
+        return setStringArrayParam(arr);
     }
 
-    public IceClient setJsonParams(Object obj){
-        return settingParam(GoogleGsonUtil.javaBeanToJson(obj));
+    public  IceClient setArrayParam(Object... objects){
+        return setObjectArrayParam(objects);
+    }
+
+    /* 设置JSON对象 */
+    public IceClient setJsonParam(Object obj){
+        return setJsonParam(GoogleGsonUtil.javaBeanToJson(obj));
+    }
+
+    /* 设置分页信息 */
+    public IceClient setPageParam(int index, int number){
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
+        store.request.param.pageIndex = index;
+        store.request.param.pageNumber = number;
+        return this;
     }
 
     public IceClient setIParam(IParam param){
-        ReqStore store = getStore();
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
         store.request.param = param;
         return this;
     }
 
-    public IceClient settingParam(String json, int index, int number){
-        ReqStore store = getStore();
-        store.request.param.json = json;
-        store.request.param.pageIndex = index;
-        store.request.param.pageNumber = number;
-        return this;
-    }
-    public IceClient settingParam(String json){
-        ReqStore store = getStore();
-        store.request.param.json = json;
-        return this;
-    }
-    public IceClient settingParam(String[] array, int index, int number){
-        ReqStore store = getStore();
-        store.request.param.arrays = array;
-        store.request.param.pageIndex = index;
-        store.request.param.pageNumber = number;
-        return this;
-    }
-    public IceClient settingParam(String[] array){
-        ReqStore store = getStore();
-        store.request.param.arrays = array;
-        return this;
-    }
-
-    public IceClient setExtend(String extend){
-        ReqStore store = threadLocalStore.get();
-        if (store!=null  && store.request!=null){
-            store. request.param.extend = extend;
-        }
-        return this;
-    }
-
+    /* 执行请求 */
     public String execute() {
-        ReqStore store = getStore();
+        RequestStore store = getCurrentThreadRequestStore();
+        if (store.curPrx == null) throw new IllegalArgumentException("请设置服务名");
+        if (store.request == null) throw new IllegalArgumentException("请请求信息");
         IRequest request = store.request;
         InterfacesPrx curPrx = store.curPrx;
-        if (curPrx!=null && request!=null){
-            return curPrx.accessService(request);
-        }
-        throw new RuntimeException("ICE 未开始连接或找不到远程代理或请求参数异常");
+        return curPrx.accessService(request);
     }
 
-    public String executeErrTry(int index,int maxTryNum){
+    /* 执行,错误将重试最大次数 */
+    public String executeErrorRetry(int index,int maxTryNum,int sleep){
             try {
                 return execute();
             } catch (Exception e) {
+                try { Thread.sleep(sleep); } catch (InterruptedException ignored) { }
                 if (index<maxTryNum){
-                    return executeErrTry(index,maxTryNum);
+                    return executeErrorRetry(++index,maxTryNum,sleep);
                 }
                 throw e;
             }
     }
 
-    public void sendMessageToClient(String identity,String message){
-        ReqStore store = getStore();
-        InterfacesPrx curPrx = store.curPrx;
-        if (curPrx!=null){
-            curPrx.sendMessageToClient(identity,message);
+
+    /* 发送消息 */
+    public void sendMessageToClient(String serverName,String identity,String message){
+        InterfacesPrx curPrx = null;
+        if (serverName!=null){
+            Ice.ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
+            curPrx = InterfacesPrxHelper.checkedCast(base);
+        }else{
+            curPrx = getCurrentThreadRequestStore().curPrx;
         }
+        if (curPrx == null) throw new IllegalArgumentException("请设置正确的IM服务名");
+        curPrx.sendMessageToClient(identity,message);
     }
 
-    /*内部调用的客户端通讯器*/
-    public static IceClient Inside(Communicator communicator) {
-        return new IceClient(communicator);
+    public void sendMessageToClient(String identity,String message){
+        sendMessageToClient(null,identity,message);
     }
 
+    private static final Map<String,IceClient> iceClientMap = new HashMap<>();
 
+    /* 自定义协议转ICE客户端
+     */
+    private static IceClient customURLConvertClient(String customURL){
+        if (!customURL.startsWith("ice://")) throw new IllegalArgumentException("ice://实例名@通讯地址([tcp/ws]:IP_1:PORT_1;[tcp/ws]:IP_2:PORT_2)@服务名@类名(可选)@方法名(可选)@Token(可选)" );
+        IceClient client = null;
+        String[] strArr = customURL.replace("ice://","").trim().split("@");
+        if (strArr.length>=3){
+            String instanceName = strArr[0].trim();
+            String addressInfo = strArr[1].trim();
+            client = iceClientMap.get(instanceName+addressInfo);
+            if (client == null) {
+                client = new IceClient(instanceName,addressInfo);
+                client.startCommunication();
+                iceClientMap.put(instanceName+addressInfo,client);
+            }
+            client.setProxy(strArr[2].trim());
+        }
 
-    public static void main(String[] args) {
-        IceClient client = new IceClient(
-                "DRUG", "ws:114.115.168.87:4062"
-//                "--Ice.Plugin.IceSSL=IceSSL.PluginFactory," +
-//                        "--IceSSL.DefaultDir=C:\\Users\\user\\Desktop\\ICE-配置合集\\SSL\\onek56\\certs," +
-//                        "--IceSSL.Keystore=server.jks," +
-//                        "--IceSSL.Password=QrKDrr9q," +
-//                        "--IceSSL.UsePlatformCAs=1"
-        );
-        String json = client.startCommunication().settingReq("--------------lzp-------------","goods2Server","ProdModule","usualKeyword").execute();
-        client.stopCommunication();
-        System.out.println(json);
+        String cls = null;
+        String med = null;
+        String token = null;
 
-
+        if (strArr.length>=5){
+            cls = strArr[3].trim();
+            med = strArr[4].trim();
+        }
+        if (strArr.length>=6){
+            token = strArr[5].trim();
+        }
+        if (client!=null) {
+            client.setRequest(token,cls,med);
+        }
+        return client;
     }
+
+    public static void executeURLSendMessage(String customURL,String identity,String message){
+        IceClient client = customURLConvertClient(customURL);
+        if (client == null) throw new IllegalArgumentException("客户端创建失败");
+        client.sendMessageToClient(identity,message);
+    }
+
+    public static String executeURL(String customURL,String json,String[] array,String extend,int index,int number){
+            IceClient client = customURLConvertClient(customURL);
+           if (client == null) throw new IllegalArgumentException("客户端创建失败");
+
+           if (json!=null && json.length()>0){
+               client.setJsonParam(json);
+           }
+           if (array!=null && array.length>0){
+               client.setStringArrayParam(array);
+           }
+           if (extend!=null && extend.length()>0){
+               client.setExtendParam(extend);
+           }
+           if (index>0 && number>0){
+               client.setPageParam(index,number);
+           }
+
+            return client.execute();
+    }
+
+    public static String executeURLJson(String customURL,String json,int index,int number){
+        return executeURL(customURL,json,null,null,index,number);
+    }
+
+    public static String executeURLArray(String customURL,String[] array,int index,int number){
+        return executeURL(customURL,null,array,null,index,number);
+    }
+
+    public static String executeURL(String customURL){
+        return executeURL(customURL,null,null,null,0,0);
+    }
+
+    public static String executeURLJson(String customURL,String json){
+        return executeURLJson(customURL,json,0,0);
+    }
+
+    public static String executeURLArray(String customURL,String[] array){
+        return executeURLArray(customURL,array,0,0);
+    }
+
+//    public static void main(String[] args) {
+//
+//        String[] arr = new String[]{"1609311693886000","0","false"};
+//        String url = "ice://ERP@tcp:114.115.168.87:5061@phdsServer@DiagnoseReport_ProductStructI@diagnosticDataList@PHDS_LOGIN_USER_7D16807A35C166C13197E2334707E368";
+//        String res = IceClient.executeURLArray(url,arr);
+//        System.out.println(res);
+//
+//    }
+
 }

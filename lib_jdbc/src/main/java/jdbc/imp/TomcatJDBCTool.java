@@ -1,8 +1,11 @@
 package jdbc.imp;
 
+import bottle.tuples.Tuple2;
 import com.google.gson.*;
 import jdbc.define.log.JDBCLogger;
+import jdbc.define.option.JDBCUtils;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
@@ -243,6 +246,157 @@ public final class TomcatJDBCTool {
                 }
             }
         }
+    }
+
+
+    private static void setFieldValue(Object instance, Field field, Object value) throws IllegalAccessException {
+
+        field.setAccessible(true);
+        String fieldTypeName = field.getGenericType().getTypeName();
+        Object resultValue;
+        switch(fieldTypeName){
+            case "int":
+            case "java.lang.Integer":
+                if(value!=null){
+                    resultValue = Integer.parseInt(value.toString());
+                }else{
+                    resultValue = 0;
+                }
+
+                break;
+            case "long":
+            case "java.lang.Long":
+                if(value!=null){
+                    resultValue = Long.parseLong(value.toString());
+                }else{
+                    resultValue = 0L;
+                }
+                break;
+            case "double":
+            case "java.lang.Double":
+                if(value!=null){
+                    resultValue = Double.parseDouble(value.toString());
+                }else{
+                    resultValue = 0.0D;
+                }
+                break;
+            case "boolean":
+            case "java.lang.Boolean":
+                if(value!=null){
+                    resultValue = Boolean.parseBoolean(value.toString());
+                }else{
+                    resultValue = false;
+                }
+                break;
+            case "byte":
+            case "java.lang.Byte":
+                if(value!=null){
+                    resultValue = Byte.parseByte(value.toString());
+                }else{
+                    resultValue = null;
+                }
+                break;
+            case "short":
+            case "java.lang.Short":
+                if(value!=null){
+                    resultValue = Short.parseShort(value.toString());
+                }else{
+                    resultValue = 0;
+                }
+                break;
+            case "float":
+            case "java.lang.Float":
+                if(value!=null){
+                    resultValue = Float.parseFloat(value.toString());
+                }else{
+                    resultValue = 0.0f;
+                }
+                break;
+            case "java.lang.String":
+                if (value!=null){
+                    resultValue = String.valueOf(value);
+                }else{
+                    resultValue = "";
+                }
+                break;
+            default:
+                resultValue = null;
+        }
+
+        if (resultValue != null){
+            field.set(instance, resultValue);
+        }
+    }
+
+    /* 指定行转对象 */
+    public static <T> T  objectArrayToSpecClass(Object[] rows, Class<T> classType, Tuple2<String,Integer>... field_index_tuple_arrays) {
+        try{
+            if (rows == null || classType==null || field_index_tuple_arrays==null)
+                throw new IllegalArgumentException("参数异常, rows="+rows+" ,classType="+classType+" ,field_index_tuple_arrays="+ Arrays.toString(field_index_tuple_arrays));
+            T instance = JDBCUtils.createObject(classType);
+            for (Tuple2<String,Integer> tuple2 : field_index_tuple_arrays) {
+                String fieldName = tuple2.getValue0();
+                int index = tuple2.getValue1();
+                try {
+                    Field field = classType.getField(fieldName);
+                    if (field==null) throw new IllegalArgumentException("找不到类属性,fieldName="+fieldName);
+                    if (index >= rows.length) throw new IllegalArgumentException("类属性关联的目标数据下标越界,fieldName="+fieldName+" ,index="+index);
+                    Object value = rows[index];
+                    // 获取属性的类型
+                    setFieldValue(instance,field,value);
+                } catch (Exception e) {
+                    JDBCLogger.error("数据列转换对象属性错误('"+fieldName+"','"+index+"')",e);
+                }
+            }
+            return instance;
+        }catch (Exception e){
+            JDBCLogger.error("数据行转换对象错误",e);
+        }
+        return null;
+
+    }
+
+    /* 指定行转对象 */
+    @SuppressWarnings("unchecked")
+    public static <T> T  objectArrayToSpecClass(Object[] rows, Class<T> classType,String... field_index_str_arrays) {
+        if (field_index_str_arrays == null) return null;
+        int len = field_index_str_arrays.length;
+
+        Tuple2<String,Integer>[] tubArr = new Tuple2[len];
+        try {
+            for(int i = 0; i<len; i++){
+                String[] arr = field_index_str_arrays[i].split(",");
+                if (arr.length == 1){
+                    tubArr[i] = new Tuple2<>(arr[0],i);
+                }else if (arr.length == 2){
+                    tubArr[i] = new Tuple2<>(arr[0],Integer.parseInt(arr[1]));
+                }else throw new IllegalArgumentException("无法解析属性域: " +  field_index_str_arrays[i]);
+            }
+        } catch (Exception e) {
+            JDBCLogger.error("数据行转对象_域名-下标字符串处理错误",e);
+            return null;
+        }
+        return objectArrayToSpecClass(rows,classType,tubArr);
+    }
+
+    /* 指定行转对象列表 */
+    public static <T> List<T>  objectArrayListToSpecClassList(List<Object[]> lines, Class<T> classType,Tuple2<String,Integer>... field_index_tuple_arrays) {
+        List<T> list = new ArrayList<>();
+        for (Object[] rows : lines){
+            T instance = objectArrayToSpecClass(rows,classType,field_index_tuple_arrays);
+            if (instance!=null) list.add(instance);
+        }
+        return list;
+    }
+
+    /* 指定行转对象列表 */
+    public static <T> List<T>  objectArrayListToSpecClassList(List<Object[]> lines, Class<T> classType,String... field_index_str_arrays) {
+        List<T> list = new ArrayList<>();
+        for (Object[] rows : lines){
+            T instance = objectArrayToSpecClass(rows,classType,field_index_str_arrays);
+            if (instance!=null) list.add(instance);
+        }
+        return list;
     }
 
 }

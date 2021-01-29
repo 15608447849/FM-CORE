@@ -3,7 +3,7 @@ package jdbc.imp;
 import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.*;
-import jdbc.define.tuples.Tuple2;
+import bottle.tuples.Tuple2;
 
 import java.sql.Types;
 import java.text.SimpleDateFormat;
@@ -294,16 +294,16 @@ public class TomcatJDBCDAO {
     /**
      * 事务修改
      */
-    public static int update(List<String> sqlList, List<Object[]> paramList, int db_slice, int table_slice, DaoApi.TransactionCallback callback) {
+    public static int update(List<String> sqlList, List<Object[]> paramList, int db_slice, int table_slice, boolean ignoreUnaffectedRows) {
         Tuple2<JDBCSessionFacadeWrap, List<String>> tuple = getDaoOp(DataBaseType.mysql,false,0, sqlList, db_slice, table_slice);
-        return tuple.getValue0().executeTransaction(tuple.getValue1(), paramList, callback);
+        return tuple.getValue0().executeTransaction(tuple.getValue1(), paramList, ignoreUnaffectedRows);
     }
 
     /**
      * 事务修改
      */
     public static int update(List<String> sqlList, List<Object[]> paramList, int db_slice, int table_slice) {
-        return update(sqlList, paramList, db_slice, table_slice, null);
+        return update(sqlList, paramList, db_slice, table_slice, false);
     }
 
     /**
@@ -316,8 +316,8 @@ public class TomcatJDBCDAO {
     /**
      * 事务修改
      */
-    public static int update(List<String> sqlList, List<Object[]> paramList, DaoApi.TransactionCallback callback) {
-        return update(sqlList, paramList, 0, 0, callback);
+    public static int update(List<String> sqlList, List<Object[]> paramList, boolean ignoreUnaffectedRows) {
+        return update(sqlList, paramList, 0, 0, ignoreUnaffectedRows);
     }
 
 
@@ -337,6 +337,15 @@ public class TomcatJDBCDAO {
         JDBCSessionFacade facade = TomcatJDBC.getFacade(dataBaseType,dbName,true);
         if (facade == null) throw new IllegalArgumentException("数据库类型或库名不正确,找不到可执行的数据库对象");
         return facade.executeBatch(sql, paramList,paramList.size());
+    }
+
+    /**
+     * 执行原始SQL
+     */
+    public static int executeOriginTranslate(DataBaseType dataBaseType,String dbName, List<String> sqlList, List<Object[]> paramList,boolean ignoreUnaffectedRows) {
+        JDBCSessionFacade facade = TomcatJDBC.getFacade(dataBaseType,dbName,true);
+        if (facade == null) throw new IllegalArgumentException("数据库类型或库名不正确,找不到可执行的数据库对象");
+        return facade.executeTransaction(sqlList, paramList,ignoreUnaffectedRows);
     }
 
     /**

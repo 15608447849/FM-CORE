@@ -1,10 +1,11 @@
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':lib_ice')
-    compile project(':lib_ping')
+    compile project(':lib_mq')
+    
     compile project(':lib_jdbc')
     compile project(':lib_cache')
-    compile project(':lib_mq')
+    //    compile project(':lib_ping')
 }
 
 shadowJar {

@@ -1,15 +1,14 @@
 package bottle.excel;
 
-import bottle.util.Log4j;
-import org.apache.poi.hssf.usermodel.*;
-
-import static bottle.excel.LeePoiExcel.isDebugLog;
+import org.apache.poi.ss.usermodel.*;
 
 /**
  * @Author: leeping
  * @Date: 2020/5/27 12:02
  */
 public abstract class ExcelElement {
+    public static boolean isDebug = false;
+
     final int x;
     final int y;
 
@@ -19,10 +18,10 @@ public abstract class ExcelElement {
     }
 
     int width;//行宽
-    short height;//行高
+    int height;//行高
 
     public ExcelElement setWidth(int width){
-        this.width = width * 256;
+        this.width = width;
         return  this;
     }
     public ExcelElement setHeight(short height){
@@ -43,41 +42,25 @@ public abstract class ExcelElement {
         return this;
     }
 
-    void execute(HSSFWorkbook workbook, HSSFSheet sheet){
+    void _execute(Workbook workbook, Sheet sheet,CellStyle style){
         if (workbook == null || sheet == null) return;
 
-        HSSFRow row = sheet.getRow(y);
+        Row row = sheet.getRow(y);
         if (row == null) row = sheet.createRow(y);
-        HSSFCell cell = row.getCell(x);
+        Cell cell = row.getCell(x);
         if (cell == null)  cell = row.createCell(x);
 
-        /*设置字体*/
-        HSSFFont font = workbook.createFont();
-        boolean isSetFont = false;
-        if (fontName!=null){
-            font.setFontName(fontName);
-            isSetFont = true;
-        }
-        if (fontHeight>0){
-            font.setFontHeightInPoints(fontHeight);
-            isSetFont = true;
-        }
-        if (isSetFont){
-            HSSFCellStyle style = workbook.createCellStyle();
-            style.setFont(font);
-            cell.setCellStyle(style);
-        }
+        /* 设置单元格 宽度,高度 https://blog.csdn.net/aosica321/article/details/72320050 */
+        if (width <= 0) width = 30;
+        if (height <= 0) height = 15;
+        sheet.setColumnWidth(x,width * 256);
+        row.setHeight((short) (height * 20));
 
-        /*设置单元格宽度*/
-        if (width>0){
-            sheet.setColumnWidth(x,width);
-        }
-        if (height>0){
-            row.setHeight(height);
-        }
-        execute(workbook,sheet,row,cell);
+        execute(workbook,sheet,row,cell,style);
+
+        if (style!=null) cell.setCellStyle(style);
     }
 
-    abstract void execute(HSSFWorkbook workbook, HSSFSheet sheet,HSSFRow row,HSSFCell cell);
+    abstract void execute(Workbook workbook, Sheet sheet,Row row,Cell cell,CellStyle style);
 
 }

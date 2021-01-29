@@ -5,7 +5,6 @@ import bottle.properties.annotations.PropertiesFilePath;
 import bottle.properties.annotations.PropertiesName;
 import bottle.util.Log4j;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
@@ -35,6 +34,7 @@ public class KafkaUtil {
                     String busKey = arr[0];
                     String useTopicName = arr[1];
                     topicMap.put(busKey,useTopicName);
+                    Log4j.info("KAFKA TOPIC : "+ busKey+" -> "+ useTopicName);
                 }
             }
 

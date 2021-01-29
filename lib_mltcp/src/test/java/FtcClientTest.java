@@ -5,9 +5,7 @@ import java.net.InetSocketAddress;
 
 public class FtcClientTest {
     public static void main(String[] args) {
-        FtcBackupClient client  = new FtcBackupClient("D:\\ftcServer\\c",
-                64,
-                2000);
+        FtcBackupClient client  = new FtcBackupClient("D:\\ftcServer\\c", 64);
         client.addServerAddress(new InetSocketAddress("47.106.100.121",18001));
 //        client.ergodicDirectory();
 //        client.addBackupFile(new File("D:\\ftcServer\\c\\DiskGenius\\DiskGenius.exe"));

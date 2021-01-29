@@ -175,7 +175,7 @@ public class TomcatJDBC {
             list = entry.getValue();
             masterPool = list.get(0);
             createDataBaseInfo(masterPool);
-            //JDBCLogger.print(printInitInfo(masterPool));
+//            JDBCLogger.print(printInitInfo(masterPool));
             masterPool.closeSession();
         }
     }
@@ -274,16 +274,28 @@ public class TomcatJDBC {
     }
 
     private static String printInitInfo(TomcatJDBCPool pool) {
-        StringBuilder sb = new StringBuilder("数据库("+pool.getDataBaseName()+")");
-        Set<String> list = dbTableAllMap.get(pool.getDataBaseName());
+
+        String key = pool.getDataBaseType()+"@"+pool.getDataBaseName();
+        StringBuilder sb = new StringBuilder(key);
+        Set<String> list = dbTableAllMap.get(key);
         if (list!=null && list.size()>0){
             sb.append("\n##### 可用表 总数:\t"+ list.size());
             sb.append("\n");
             for (String tableName : list){
-                sb.append(tableName).append("; ");
+                String _tableName = tableName.replace(pool.getDataBaseType()+"@","");
+                sb.append("表: ").append(_tableName);
+                List<TableRow> rows = tableRowsAllMap.get(pool.getDataBaseType()+"@"+_tableName);
+                if (rows.size()>0){
+                    sb.append("\n\t列:\t");
+                }
+                for (TableRow row : rows){
+                    sb.append(row.index+","+row.rowName+" ");
+                }
+                sb.append("\n");
+
             }
         }
-        list = dbProcedureAllMap.get(pool.getDataBaseName());
+        list = dbProcedureAllMap.get(key);
         if (list!=null && list.size()>0){
             sb.append("\n##### 可用存储过程/函数 总数:\t"+ list.size());
             sb.append("\n");

@@ -8,11 +8,20 @@ dependencies {
 
 //    implementation 'org.apache.poi:poi:4.1.2'
    compile group: 'com.alibaba', name: 'easyexcel', version: '2.2.3'
-
+    //拼音
+    compile 'com.belerweb:pinyin4j:2.5.1'
+    compile 'com.google.guava:guava:10.0.1'
     shadowJar {
         baseName = 'lib_ping'
         classifier = null
         version = null
+
+//        manifest {
+//            attributes 'Main-Class': 'bottle.util.GaoDeMapUtil'
+//        }
+
     }
+
+
     
 }

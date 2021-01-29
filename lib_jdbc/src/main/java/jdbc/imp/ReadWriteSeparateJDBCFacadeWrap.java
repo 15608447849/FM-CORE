@@ -2,7 +2,6 @@ package jdbc.imp;
 
 import jdbc.define.option.JDBCSessionFacade;
 import jdbc.define.option.Page;
-import jdbc.define.tuples.Tuple2;
 
 import java.util.List;
 

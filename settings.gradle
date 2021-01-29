@@ -6,7 +6,9 @@ include 'lib_mq'
 include 'lib_ice'
 include 'lib_jdbc'
 include 'lib_cache'
+
 include 'core-lib-erp'
 include 'core-lib-drug'
 include 'core-lib-dataware'
+include 'core-lib-common'
 

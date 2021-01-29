@@ -62,11 +62,11 @@ public final class ApplicationPropertiesBase {
     public synchronized static void initStaticFields(Class clazz) {
         try {
             PropertiesFilePath p =  getPropertiesFilePath(clazz);
-            if (p==null) throw new RuntimeException("配置文件获取失败,请使用注解 'PropertiesFilePath'");
+            if (p==null) throw new RuntimeException(clazz+" 请使用注解 'PropertiesFilePath' 指定配置文件路径");
             String filePath = p.value();
             String charset = p.decode();
             InputStream in = readPathProperties(clazz,filePath);
-            if (in==null) throw new RuntimeException("配置文件获取失败: "+ filePath);
+            if (in==null) throw new RuntimeException("找不到文件 "+ filePath);
             properties.clear();
             properties.load(new InputStreamReader(in,charset));
             Field[] fields = clazz.getDeclaredFields();
@@ -77,18 +77,23 @@ public final class ApplicationPropertiesBase {
                 String key = name.value();
                 String value = properties.getProperty(key);
                 if (value==null || value.length()==0) continue;
-                //获取属性类型
-                String type = field.getGenericType().toString();
-                if(baseType.containsKey(type)){
-                    try {
-                        baseType.get(type).setValue(clazz,field,value);
-                    } catch (IllegalAccessException e) {
-                        e.printStackTrace();
-                    }
-                }
+                assignmentByType(clazz,field,value);
+
             }
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            System.err.println("初始化配置文件失败,原因: " + e.getMessage());
+        }
+    }
+
+    public static void assignmentByType(Object instanceClass, Field field, String value) {
+        //获取属性类型
+        String type = field.getGenericType().toString();
+        if(baseType.containsKey(type)){
+            try {
+                baseType.get(type).setValue(instanceClass,field,value);
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
         }
     }
 

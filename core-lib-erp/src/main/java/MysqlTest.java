@@ -29,42 +29,9 @@ public class MysqlTest {
     public static void main(String[] args) throws Exception{
 
         TomcatJDBC.initialize("db-mysql.properties");
+//        TomcatJDBC.initialize("db-10-12-0-241.properties");
 
-        String sql = " insert into {{?LEEZP}} (a,b,c,d) values (?,?,?,?)";
 
-
-        final List<String> sqlList = new ArrayList<>();
-        final List<Object[]> paramList = new ArrayList<>();
-        sqlList.add(sql);
-        paramList.add(new Object[]{1,2,3,4});
-        sqlList.add(sql);
-        paramList.add(new Object[]{5,6,7,8});
-
-        String startTime = TimeTool.date_yMd_Hms_2Str(new Date());
-        int number = 10;
-        long time = System.currentTimeMillis();
-        final CountDownLatch countDownLatch = new CountDownLatch(number);
-        for (int i = 0;i<number;i++){
-            final  int index = i;
-            new Thread(() -> {
-                try {
-
-                    String currentThread = Thread.currentThread().getName();
-                    String currentTime = TimeTool.date_yMd_Hms_2Str(new Date());
-//                    int res = TomcatJDBCDAO.update(sql,new Object[]{startTime,currentThread,currentTime,index});
-                    int res = TomcatJDBCDAO.update(sqlList,paramList);
-//                    System.out.println(res);
-                } catch (Exception e) {
-                    System.out.println("错误: "+ e);
-                }
-                countDownLatch.countDown();
-            }).start();
-        }
-
-        countDownLatch.await();
-
-        TomcatJDBC.destroy();
-        System.out.println("---OK--- "  +(  System.currentTimeMillis() - time ) +" ms");
 
     }
 

@@ -29,8 +29,8 @@ public final class SyncTask {
     private int state;
     //成功的数据库列表
     private List<String> successDbList;
-    //事务结果调用类
-    private String transactionCallbackClassPath;
+    //事务执行是否忽略未影响的行
+    private boolean ignoreUnaffectedRows;
 
     private String failCause;
 
@@ -95,12 +95,12 @@ public final class SyncTask {
         this.batchSize = batchSize;
     }
 
-    public String getTransactionCallbackClassPath() {
-        return transactionCallbackClassPath;
+    public boolean isIgnoreUnaffectedRows() {
+        return ignoreUnaffectedRows;
     }
 
-    public void setTransactionCallbackClassPath(String transactionCallbackClassPath) {
-        this.transactionCallbackClassPath = transactionCallbackClassPath;
+    public void setIgnoreUnaffectedRows(boolean ignoreUnaffectedRows) {
+        this.ignoreUnaffectedRows = ignoreUnaffectedRows;
     }
 
     public String getFailCause() {
@@ -113,27 +113,22 @@ public final class SyncTask {
 
     @Override
     public String toString() {
-        StringBuilder s = new StringBuilder();
-        s.append("ID= ").append(id)
-                .append(" ,执行标识= ").append(methodFlag)
-                .append(" ,当前状态= ").append(state)
-                .append("\n");
-        s.append("SQL").append("= ").append(sqlList);
-        if (paramList!=null){
-            s.append("\n参数").append("= ");
-            for (Object[] o : paramList){
-                s.append(Arrays.toString(o));
+        StringBuilder s = new StringBuilder().append("\tID= ").append(id).append(",METHOD= ").append(methodFlag);
+        if (sqlList != null) {
+            for (int i = 0;i<sqlList.size();i++){
+                s.append("\n").append("SQL-"+i+"\t").append(sqlList.get(i));
             }
         }
-        return "\t"+s.toString()+"\n";
+        if (paramList!=null){
+            for (int i = 0;i<paramList.size();i++){
+                s.append("\n").append("PARAM-"+i+"\t").append(Arrays.toString(paramList.get(i)));
+            }
+        }
+        return s.toString();
     }
 
 
-
-
-
     public static class Factory{
-
         public static SyncTask create(String sql, Object[] params, String methodFlag) {
             SyncTask task = new SyncTask();
             task.sqlList = new ArrayList<>();
@@ -155,22 +150,22 @@ public final class SyncTask {
         }
 
 
-        public static SyncTask create(List<String> sqlList, List<Object[]> paramList, DaoApi.TransactionCallback callback, String methodFlag) {
+        public static SyncTask create(List<String> sqlList, List<Object[]> paramList, boolean ignoreUnaffectedRows, String methodFlag) {
             SyncTask task = new SyncTask();
             task.sqlList = sqlList;
             task.paramList = paramList;
             task.methodFlag = methodFlag;
-            if (callback!=null) task.transactionCallbackClassPath = callback.getClass().getName();
+            ignoreUnaffectedRows = ignoreUnaffectedRows;
             return task;
         }
 
-        public static SyncTask create(long id,List<String> sqlList,List<Object[]> paramList,int batchSize,String transactionPath,String methodFlag,int state,List<String> successDbList) {
+        public static SyncTask create(long id,List<String> sqlList,List<Object[]> paramList,int batchSize,boolean ignoreUnaffectedRows,String methodFlag,int state,List<String> successDbList) {
             SyncTask task = new SyncTask();
             task.id = id;
             task.sqlList = sqlList;
             task.paramList = paramList;
             task.batchSize = batchSize;
-            task.transactionCallbackClassPath = transactionPath;
+            task.ignoreUnaffectedRows = ignoreUnaffectedRows;
             task.methodFlag = methodFlag;
             task.state = state;
             task.successDbList = successDbList;

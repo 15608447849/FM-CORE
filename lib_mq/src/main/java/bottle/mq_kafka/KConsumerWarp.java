@@ -102,7 +102,7 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
                     ConsumerRecords<String, String> records = consumer.poll( handlerRecords == null ?  TIMEOUT_MILLIS_POLL :  TIMEOUT_MILLIS_NO_POLL);
                     if (records.count() > 0) {
                         long sPoint = records.iterator().next().offset();
-                        Log4j.info(" #>> 收到一批消息,大小: "+ records.count()+" 起点: "+ sPoint +" 终点: "+ ( sPoint+records.count() ) );
+                        Log4j.info(" KAFKA消费者>> 收到一批消息,大小: "+ records.count()+" 起点: "+ sPoint +" 终点: "+ ( sPoint+records.count() ) );
                         if (handlerRecords == null){
                             //当前正在处理的分区
                             Collection<TopicPartition> partitions = new HashSet<>();

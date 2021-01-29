@@ -90,7 +90,7 @@ public class KConfigBuild {
         //服务器拉取消息返回的最小数据量 字节
         configs.put("fetch.min.bytes",5 * 1024 * 1024);
         //如果没有足够的数据满足 最多等待多久返回有效数据 毫秒
-        configs.put("fetch.max.wait.ms", 45 * 1000);
+        configs.put("fetch.max.wait.ms", 30 * 1000);
 
         // 指定服务器从每个分区内返回的消息最大字节数 必须与  服务器配置max.message.size 一致
         configs.put("max.partition.fetch.bytes", 5 * 1024 * 1024);

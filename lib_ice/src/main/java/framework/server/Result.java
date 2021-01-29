@@ -43,6 +43,9 @@ public class Result{
    // 分页信息
    private Object pageInfo;
 
+   // 拓展对象
+   private Object expand;
+
    //是否成功
    public boolean isSuccess(){
       return code == CODE.SUCCESS;
@@ -98,18 +101,25 @@ public class Result{
       return this;
    }
 
+   public Result setExpand(Object expand){
+      this.expand = expand;
+      return this;
+   }
+
    //拦截
    public Result intercept(String cause){
       this.code = CODE.INTERCEPT;
       this.message = cause;
       return this;
    }
+
    //拦截
    public Result intercept(int code , String cause){
       this.code = code;
       this.message = cause;
       return this;
    }
+
    //错误
    public Result error(String msg,String error) {
       this.code = CODE.ERROR;
@@ -159,6 +169,7 @@ public class Result{
       error = null;
       map = null;
       pageInfo = null;
+      expand = null;
    }
 
 }

@@ -64,25 +64,28 @@ public class GenUniqueID {
     }
 
 
-    public static void main(String[] args) {
-        GenUniqueID genUniqueID = new GenUniqueID(true);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true){
-                    System.out.println(genUniqueID.currentTimestampLong());
-                }
-            }
-        }).start();
+    public static final GenUniqueID secondID = new GenUniqueID(false);
+    public static final GenUniqueID milliSecondID = new GenUniqueID(true);
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while (true){
-                    System.out.println(genUniqueID.currentTimestampLong());
-                }
-            }
-        }).start();
+    public static void main(String[] args) {
+//        GenUniqueID genUniqueID = new GenUniqueID(true);
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while (true){
+//                    System.out.println(genUniqueID.currentTimestampLong());
+//                }
+//            }
+//        }).start();
+//
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                while (true){
+//                    System.out.println(genUniqueID.currentTimestampLong());
+//                }
+//            }
+//        }).start();
 
 //        new Thread(new Runnable() {
 //            @Override

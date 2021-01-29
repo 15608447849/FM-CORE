@@ -47,7 +47,7 @@ public class JDBCUtils {
     }
 
     /* 创建类 */
-    static <T> T createObject(Class<T> beanClass) throws Exception {
+    public static <T> T createObject(Class<T> beanClass) throws Exception {
         if (beanClass.getName().contains("$")){
             return getObjectFromInnerClass(beanClass);
         }

@@ -7,7 +7,7 @@ dependencies {
 }
 
 shadowJar {
-    baseName = 'lib-ice'
+    baseName = 'lib_ice'
     classifier = null
-    version = null
+    version = 1.0
 }

@@ -42,6 +42,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
 
 
     public HttpRequest accessUrl(String url){
+        System.out.println(url);
         new HttpUtil.Request(url,this)
                 .setReadTimeout(timeOut)
                 .setConnectTimeout(timeOut)
@@ -88,13 +89,17 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
         return this;
     }
 
-    private static String join(List list, String separator) {
+    private static String _join(List<String> list, String separator) {
         StringBuilder sb = new StringBuilder();
-        for (Object obj : list){
-            sb.append(obj.toString()).append(separator);
+        for (String str : list){
+            sb.append(str).append(separator);
         }
         sb.deleteCharAt(sb.length() - 1);
-        return sb.toString();
+        try {
+            return URLEncoder.encode(sb.toString(),"UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return sb.toString();
+        }
     }
 
     private boolean isLogo;
@@ -127,9 +132,9 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
     public HttpRequest fileUploadUrl(String url){
         if (formItems != null && formItems.size() > 0){
             HashMap<String,String> headParams = new HashMap<>();
-            headParams.put("specify-path",join(pathList,";"));
-            headParams.put("specify-filename",join(nameList,";"));
-            if(imageSizeList.size() > 0) headParams.put("tailor-list",join(imageSizeList,";"));
+            headParams.put("specify-path", _join(pathList,";"));
+            headParams.put("specify-filename", _join(nameList,";"));
+            if(imageSizeList.size() > 0) headParams.put("tailor-list", _join(imageSizeList,";"));
             if (isThumb) headParams.put("image-min-exist","1");//图片最小比例缩略图
 
             if (isLogo) headParams.put("image-logo", "0");//水印
@@ -167,7 +172,7 @@ public class HttpRequest extends HttpUtil.CallbackAbs  {
      */
     public HttpRequest getBatchDownloadFileZipUrl(String url, List<String> filePath){
         HashMap<String,String> headParams = new HashMap<>();
-        headParams.put("path-list", join(filePath,";"));
+        headParams.put("path-list", _join(filePath,";"));
         new HttpUtil.Request(url, HttpUtil.Request.POST, this)
                 .setParams(headParams)
                 .setReadTimeout(timeOut).

@@ -1,10 +1,14 @@
 package bottle.excel;
 
 import bottle.util.Log4j;
-import org.apache.poi.hssf.usermodel.*;
-import org.apache.poi.hssf.util.HSSFColor;
 
-import static bottle.excel.LeePoiExcel.isDebugLog;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFColor;
+
+import java.awt.Color;
+
 
 /**
  * @Author: leeping
@@ -19,8 +23,10 @@ public class ExcelHead extends ExcelElement{
     }
 
     @Override
-    void execute(HSSFWorkbook workbook, HSSFSheet sheet, HSSFRow row, HSSFCell cell) {
-        if (isDebugLog) Log4j.info("设置表头: " + cell.getColumnIndex() + " , "+ cell.getRowIndex() +" "+headName);
+    void execute(Workbook workbook, Sheet sheet, Row row, Cell cell, CellStyle style) {
+        if (isDebug) Log4j.info("设置表头: " +  cell.getRowIndex() +" , "+cell.getColumnIndex() + " , " + headName);
+
         cell.setCellValue(headName);
+
     }
 }

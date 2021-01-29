@@ -81,16 +81,6 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                     }
                 }
             }
-//            try(ResultSet rs = pst.executeQuery()){
-//                int cols = rs.getMetaData().getColumnCount(); //行数
-//                while(rs.next()) {
-//                    Object[] arrays = new Object[cols];
-//                        for(int i = 0; i < cols; i++) {
-//                            arrays[i] = rs.getObject(i + 1);
-//                        }
-//                    result.add(arrays);
-//            }
-//            }
 
         }catch (Exception e){
             result.clear();
@@ -129,22 +119,7 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                         }
                     }
                 }
-                /*
-                try(ResultSet rs = pst.executeQuery();){
-                    while(rs.next()) {
-                        try {
-                            T bean = JDBCUtils.createObject(beanClass);
-                            //获取本身和父级对象
-                            for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
-                                JDBCUtils.classAssignment(clazz,bean,rs);
-                            }
-                            result.add(bean);
-                        } catch (Exception e) {
-                            JDBCLogger.error("【数据反射赋值错误】", e);
-                        }
-                    }
-                }
-                */
+
             }
 
         } catch (Exception e) {
@@ -197,7 +172,6 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
             if (!pst.execute()){
                 affectedRows = pst.getUpdateCount();
             }
-            //affectedRows = pst.executeUpdate();
         } catch (Exception e) {
             affectedRows = -1;
             JDBCLogger.error(
@@ -256,7 +230,6 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
             if (e instanceof SQLException){
                 SQLException _e = (SQLException) e;
                 if (e instanceof ru.yandex.clickhouse.except.ClickHouseUnknownException){
-                    // ClickHouse exception, code: 1002, host: 114.115.170.155, port: 8123; Connection pool shut down
                     if (_e.getErrorCode() == 1002){
                         return executeBatch(sql,paramList,batchSize);
                     }
@@ -279,7 +252,7 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     }
 
     @Override
-    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,TransactionCallback callback) {
+    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,boolean ignoreUnaffectedRows) {
         JDBCUtils.filterParam(paramList);
         if (sqlList.size() != paramList.size()) throw new JDBCException("parameters do not match. If there is no value, use 'null' placeholder");
         JDBCSessionManagerAbs m = getManager();
@@ -293,10 +266,8 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
 
                 if (result < 0) throw new SQLException("事务: SQL执行错误\n" + sql + "\n" +Arrays.toString(params));
 
-                if (result == 0) {
-                    if (callback!=null){
-                        callback.callback(sql,params,result);
-                    }else throw new SQLException("事务: 没有受影响的行\n"+ sql+"\n"+ Arrays.toString(params));
+                if (result == 0 && !ignoreUnaffectedRows) {
+                    throw new SQLException("事务: 没有受影响的行\n"+ sql+"\n"+ Arrays.toString(params));
                 }
             }
             m.commit();

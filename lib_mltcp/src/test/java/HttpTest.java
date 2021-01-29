@@ -1,6 +1,9 @@
+import bottle.util.GoogleGsonUtil;
 import bottle.util.HttpUtil;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @Author: leeping
@@ -8,10 +11,15 @@ import java.io.File;
  */
 public class HttpTest {
     public static void main(String[] args) {
-        String url = "http://fs.onek56.com:8877/print/40676E556B55CFB713E28CA0AA57F708/1583808464359.docx";
+        String url = "http://10.15.0.110:8099/classify_product_table/json";
 
-        File local = new File("C:\\IDEAWORK\\erp-client\\out\\production\\printFile\\1.docx");
-        new HttpUtil.Request(url, null)
-                .setDownloadFileLoc(local).download().execute();
+        Map<String,Object> map = new HashMap<>();
+        map.put("classifyTree",1);
+        map.put("needProd",0);
+        map.put("cfyCode",0);
+        map.put("cfyLevel",0);
+
+        String resJson = HttpUtil.contentToHttpBody(url,"POST", GoogleGsonUtil.javaBeanToJson(map));
+        System.out.println(resJson);
     }
 }

@@ -5,7 +5,7 @@ import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.DataBaseType;
 import jdbc.define.session.JDBCSessionManagerAbs;
-import jdbc.define.tuples.Tuple2;
+import bottle.tuples.Tuple2;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
 
@@ -15,8 +15,6 @@ import java.lang.reflect.Field;
 import java.security.InvalidParameterException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Properties;
 
 /**
@@ -49,6 +47,7 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
         props.load(is);
 
         String seqStr = props.getProperty("node.seq");
+        if (seqStr == null) throw new IllegalStateException("请设置数据库配置文件node.seq");
         seq = Integer.parseInt(seqStr);
 
         String url = props.getProperty("url");

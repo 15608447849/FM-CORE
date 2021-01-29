@@ -1,9 +1,8 @@
 package jdbc.define.sync;
 import jdbc.define.log.JDBCLogger;
-import jdbc.define.option.DaoApi;
 import jdbc.define.option.DataBaseType;
 import jdbc.define.option.JDBCSessionFacade;
-import jdbc.define.tuples.Tuple2;
+import bottle.tuples.Tuple2;
 import jdbc.imp.TomcatJDBC;
 import jdbc.imp.TomcatJDBCPool;
 import java.util.*;
@@ -12,13 +11,13 @@ import java.util.*;
  * @Author: leeping
  * @Date: 2019/8/17 21:47
  */
-public class DefaultSyncImp implements SyncI {
+public class SyncImpDefault implements SyncI {
 
     /* 执行同步 */
     private Tuple2<Boolean,String> executeSql(SyncTask task, JDBCSessionFacade dao) {
 
         boolean result = false;
-        String error = "";
+        String error = null;
         try {
                 if (!dao.checkDBConnectionValid()){
                    throw new IllegalStateException("数据库:"+ dao.getManager() +" 连接失败!");
@@ -32,28 +31,20 @@ public class DefaultSyncImp implements SyncI {
                 if(methodFlag.equals("execute")){
                     Object[] params = paramList!=null ? paramList.get(0) : null;
                     int i = dao.execute(sqlList.get(0),params);
-                    error+="执行结果="+i;
                     if (i >= 0 ) result = true;
-                    JDBCLogger.write("【执行同步】 execute 结果 = "+i + task);
+                    JDBCLogger.write("【执行同步】 execute 结果 = " + i + task);
+                }
+
+                if (methodFlag.equals("executeTransaction")){
+                    int i = dao.executeTransaction(sqlList,paramList,task.isIgnoreUnaffectedRows());
+                    if (i >= 0 ) result = true;
+                    JDBCLogger.write("【执行同步】 executeTransaction  结果 = "+i + task);
                 }
 
                 if (methodFlag.equals("executeBatch")){
                     int[] i = dao.executeBatch(sqlList.get(0),paramList, task.getBatchSize());
-                    error+="执行结果="+Arrays.toString(i);
                     if (i != null) result = true;
-                    JDBCLogger.write("【执行同步】 executeBatch  结果 = "+ (i==null?"null":Arrays.toString(i)) + task );
-                }
-
-                if (methodFlag.equals("executeTransaction")){
-                    DaoApi.TransactionCallback transactionCallback = null;
-                    if (task.getTransactionCallbackClassPath()!=null && task.getTransactionCallbackClassPath().length()>0){
-                        Class<?> cls = Class.forName(task.getTransactionCallbackClassPath());
-                        transactionCallback = (DaoApi.TransactionCallback) cls.newInstance();
-                    }
-                    int i = dao.executeTransaction(sqlList,paramList,transactionCallback);
-                    error+="执行结果="+i +" ,transactionCallback = " + transactionCallback;
-                    if (i >= 0 ) result = true;
-                    JDBCLogger.write("【执行同步】 executeTransaction  结果 = "+i + task);
+                    JDBCLogger.write("【执行同步】 executeBatch  结果 = " + i.length);
                 }
 
         } catch (Exception e) {
@@ -88,7 +79,6 @@ public class DefaultSyncImp implements SyncI {
         try {
             // 非mysql不执行
             if (facade.getManager().getDataBaseType() != DataBaseType.mysql){
-
                 return true;
             }
 
@@ -99,8 +89,8 @@ public class DefaultSyncImp implements SyncI {
             //获取关联的同步数据库
             List<TomcatJDBCPool> list = TomcatJDBC.getSpecDataBasePoolList(DataBaseType.mysql,currentPool.getDataBaseName());
 
+            //未设置备份库
             if (list.size() == 1) {
-                //JDBCLogger.write("【同步数据库】" + currentPool.getDataBaseName() + " , 未设置备份库)");
                 return true;
             }
 
@@ -123,6 +113,7 @@ public class DefaultSyncImp implements SyncI {
             if (task.getState() == index) {
               return true;
             }
+
         }catch (Exception e){
             JDBCLogger.error("同步数据库失败",e);
         }

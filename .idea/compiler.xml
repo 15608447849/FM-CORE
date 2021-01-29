@@ -13,6 +13,8 @@
       <module name="fm-core_main" target="1.8" />
       <module name="fm-core_test" target="1.8" />
       <module name="FM-CORE_test" target="1.8" />
+      <module name="lib_znlp_main" target="1.8" />
+      <module name="lib_znlp_test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

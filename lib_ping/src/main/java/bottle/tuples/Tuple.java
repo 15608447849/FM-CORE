@@ -1,4 +1,4 @@
-package jdbc.define.tuples;
+package bottle.tuples;
 
 /**
  * Created by Leeping on 2018/4/8.

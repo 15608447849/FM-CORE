@@ -16,18 +16,18 @@ import jdbc.define.option.JDBCSessionFacade;
 public class SyncFactory {
 
     @PropertiesName("sync.execute")
-    private static String syncImpClassPath = null;
+    private static String syncImpClassPath = SyncImpDefault.class.getName();
 
     private static SyncI syncI = null;
 
     static {
         ApplicationPropertiesBase.initStaticFields(SyncFactory.class);
-        if (syncImpClassPath == null) syncImpClassPath = DefaultSyncImp.class.getName();
-        try {
-            syncI = (SyncI) ObjectRefUtil.createObject(syncImpClassPath);
-            JDBCLogger.print("数据库同步对象: "+ syncI);
-        } catch (Exception e) {
-            JDBCLogger.error("无法创建数据库同步操作对象("+syncImpClassPath+")",e);
+        if(syncImpClassPath != null){
+            try {
+                syncI = (SyncI) ObjectRefUtil.createObject(syncImpClassPath);
+            } catch (Exception e) {
+                JDBCLogger.error("无法创建数据库同步操作对象("+syncImpClassPath+")",e);
+            }
         }
     }
 

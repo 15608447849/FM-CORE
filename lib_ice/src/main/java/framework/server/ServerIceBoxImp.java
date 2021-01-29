@@ -18,6 +18,8 @@ import java.util.jar.JarFile;
  * 接入ice框架的服务
  */
 public final class ServerIceBoxImp implements Service {
+    public static String[] skipInitializeScanArr = new String[]{ "Util","Utils","Tool","Tools" };
+
     private final ApiServerImps service = new ApiServerImps();
     private ObjectAdapter _adapter;
     private String rpcGroupName;
@@ -81,7 +83,7 @@ public final class ServerIceBoxImp implements Service {
     private void initServer(Communicator communicator,String packagePath) {
         try {
             long time = System.currentTimeMillis();
-            scanJarAllClass(packagePath);
+            scanJarAllClass(packagePath,skipInitializeScanArr);
             initialization(communicator);
             Log4j.info("服务初始化耗时:"+ (System.currentTimeMillis() - time)+"ms");
         } catch (Exception e) {
@@ -90,7 +92,7 @@ public final class ServerIceBoxImp implements Service {
     }
 
     //扫描jar包内的所有class文件
-    private void scanJarAllClass(String packagePath){
+    private void scanJarAllClass(String packagePath,String... skipEndingArr){
         try {
             File file = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getFile());
             JarFile jarFile = new JarFile(file);
@@ -102,6 +104,17 @@ public final class ServerIceBoxImp implements Service {
                     try {
                         String classFullName = name.replace("/",".").replace(".class","");
                         if (classFullName.startsWith(packagePath)){
+                            if (skipEndingArr != null && skipEndingArr.length>0){
+                                boolean skip = false;
+                                for (String ending : skipEndingArr){
+                                    if (classFullName.endsWith(ending)){
+                                        skip = true;
+                                        System.out.println("跳过扫描: " + classFullName);
+                                        break;
+                                    }
+                                }
+                                if (skip) continue;
+                            }
                             Class<?> classType = Class.forName(classFullName);
                             findJarAllClass(classType);
                         }

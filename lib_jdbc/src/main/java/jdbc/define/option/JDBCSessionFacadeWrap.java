@@ -1,10 +1,7 @@
 package jdbc.define.option;
 
 import jdbc.define.exception.JDBCException;
-import jdbc.define.tuples.Tuple2;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -51,8 +48,8 @@ public class JDBCSessionFacadeWrap implements DaoApi{
     }
 
     @Override
-    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,TransactionCallback callback) {
-        return op.executeTransaction(sqlList,paramList,callback);
+    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,boolean ignoreUnaffectedRows) {
+        return op.executeTransaction(sqlList,paramList,ignoreUnaffectedRows);
     }
 
     @Override

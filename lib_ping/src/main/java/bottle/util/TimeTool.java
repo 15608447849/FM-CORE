@@ -68,6 +68,17 @@ public class TimeTool {
         return null;
     }
 
+    public static String date2Str(Date date,String dateFormat){
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+        try {
+            return simpleDateFormat.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+
     /**
      * 例: "2017-11-11 9:50:00"
      */
@@ -122,32 +133,39 @@ public class TimeTool {
         return 1900;
     }
 
+    private final static String[] parsePatterns = new String[]{
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd",
+
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "yyyy/MM/dd",
+
+            "HH:mm:ss"
+
+    };
+
+    private final static SimpleDateFormat[] parsePatterns_dateFormat = new SimpleDateFormat[parsePatterns.length];
+
+    static {
+        for (int i = 0; i< parsePatterns.length;i++){
+            parsePatterns_dateFormat[i] =  new SimpleDateFormat(parsePatterns[i]);
+        }
+    }
+
 
     /* 检查日期格式 */
-    public static Object[] parseDate(String str,String[] parsePatterns) {
+    public static Object[] parseDate(String str) {
         if (str == null) {
             return null;
         }
-        if (parsePatterns == null){
-            parsePatterns = new String[]{
-                    "yyyy-MM-dd HH:mm:ss",
-                    "yyyy-MM-dd HH:mm",
-                    "yyyy-MM-dd",
 
-                    "yyyy/MM/dd HH:mm:ss",
-                    "yyyy/MM/dd HH:mm",
-                    "yyyy/MM/dd",
-
-                    "HH:mm:ss"
-
-            };
-        }
-
-        for (String formatStr : parsePatterns){
+        for (int i = 0;i<parsePatterns_dateFormat.length;i++){
             try {
-                SimpleDateFormat dateFormat = new SimpleDateFormat(formatStr);
+                SimpleDateFormat dateFormat =  parsePatterns_dateFormat[i];
                 dateFormat.setLenient(false);
-                return new Object[]{ formatStr, dateFormat.parse(str)};
+                return new Object[]{ parsePatterns[i] , dateFormat.parse(str)};
             } catch (ParseException ignored) { }
         }
         return  null;

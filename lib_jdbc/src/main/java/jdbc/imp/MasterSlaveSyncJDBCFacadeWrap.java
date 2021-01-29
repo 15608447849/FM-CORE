@@ -30,9 +30,9 @@ public class MasterSlaveSyncJDBCFacadeWrap extends JDBCSessionFacadeWrap{
     }
 
     @Override
-    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,TransactionCallback callback) {
-        syncHandle( op,SyncTask.Factory.create(sqlList,paramList,callback,"executeTransaction"));
-        return op.executeTransaction(sqlList,paramList,callback);
+    public int executeTransaction(List<String> sqlList, List<Object[]> paramList,boolean ignoreUnaffectedRows) {
+        syncHandle( op,SyncTask.Factory.create(sqlList,paramList,ignoreUnaffectedRows,"executeTransaction"));
+        return op.executeTransaction(sqlList,paramList,ignoreUnaffectedRows);
     }
 
 }

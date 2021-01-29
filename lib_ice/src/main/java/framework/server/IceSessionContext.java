@@ -116,6 +116,7 @@ public class IceSessionContext {
         callClass = null;
         callMethod = null;
         api = null;
+        additionalObjectMap.clear();
         if (result!=null){
             result.clear();
             ObjectPoolManager.destroyObject(result);
