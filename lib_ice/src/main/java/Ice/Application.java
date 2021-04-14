@@ -8,11 +8,6 @@
 // **********************************************************************
 
 package Ice;
-
-import bottle.util.Log4j;
-
-import java.util.Arrays;
-
 /**
  * Utility base class that makes it easy to correctly initialize and finalize
  * the Ice run time, as well as handle signals. Unless the application specifies

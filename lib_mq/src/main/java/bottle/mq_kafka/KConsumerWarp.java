@@ -102,7 +102,7 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
                     ConsumerRecords<String, String> records = consumer.poll( handlerRecords == null ?  TIMEOUT_MILLIS_POLL :  TIMEOUT_MILLIS_NO_POLL);
                     if (records.count() > 0) {
                         long sPoint = records.iterator().next().offset();
-                        Log4j.info(" KAFKA消费者>> 收到一批消息,大小: "+ records.count()+" 起点: "+ sPoint +" 终点: "+ ( sPoint+records.count() ) );
+                        if (KafkaUtil.isDebug) Log4j.info(" KAFKA消费者>> 收到一批消息,大小: "+ records.count()+" 起点: "+ sPoint +" 终点: "+ ( sPoint+records.count() ) );
                         if (handlerRecords == null){
                             //当前正在处理的分区
                             Collection<TopicPartition> partitions = new HashSet<>();
@@ -146,7 +146,7 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
                         if (currentOffset!=null){
                             try {
                                 consumer.commitSync(currentOffset);
-                                Log4j.info("提交偏移量完成: " + currentOffset);
+                                if (KafkaUtil.isDebug) Log4j.info("提交偏移量完成: " + currentOffset);
                             } catch (Exception e) {
                                 Log4j.error("提交偏移量异常: " + currentOffset , e);
                                 retryOffset = currentOffset;
@@ -162,7 +162,7 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
                     }
                 } catch (WakeupException e) {
                     //正常关闭中
-                    Log4j.info("kafka消费者正常关闭");
+                    if (KafkaUtil.isDebug) Log4j.info("kafka消费者正常关闭");
                 }catch (Exception e){
                     Log4j.error("kafka消费者轮询异常",e);
                 }
@@ -175,13 +175,13 @@ public class KConsumerWarp extends Thread implements ConsumerRebalanceListener,K
     // 再均衡监听 1.重新分配分区之后  2.开始读取消息前
     @Override
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-        Log4j.info("############################ onPartitionsAssigned 消费者 重新分配分区之后 or 开始读取消息前 :" + partitions);
+        if (KafkaUtil.isDebug) Log4j.info("onPartitionsAssigned >> 消费者 重新分配分区之后 or 开始读取消息前 :" + partitions);
     }
 
     // 再均衡监听 1.再均衡开始前 2.停止读取消息后 , 在这里提交偏移量,下一个消费者将可以安全接管分区
     @Override
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-        Log4j.info("############################ onPartitionsRevoked 消费者 再均衡开始前 or 停止读取消息后 :" + partitions);
+        if (KafkaUtil.isDebug) Log4j.info("onPartitionsRevoked >> 消费者 再均衡开始前 or 停止读取消息后 :" + partitions);
     }
 
 

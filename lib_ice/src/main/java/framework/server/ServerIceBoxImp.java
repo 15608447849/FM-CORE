@@ -1,9 +1,7 @@
 package framework.server;
 
 import Ice.*;
-import Ice.Object;
 import IceBox.Service;
-import bottle.objectref.ObjectRefUtil;
 import bottle.util.Log4j;
 import framework.client.IceClient;
 
@@ -109,7 +107,7 @@ public final class ServerIceBoxImp implements Service {
                                 for (String ending : skipEndingArr){
                                     if (classFullName.endsWith(ending)){
                                         skip = true;
-                                        System.out.println("跳过扫描: " + classFullName);
+                                        //System.out.println("跳过扫描: " + classFullName);
                                         break;
                                     }
                                 }

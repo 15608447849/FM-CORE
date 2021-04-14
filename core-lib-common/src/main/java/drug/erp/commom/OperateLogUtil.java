@@ -11,6 +11,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import static bottle.util.StringUtil.printExceptInfo;
+
 public class OperateLogUtil {
     /* 具体的UI组件及字面值 */
     private static class UIComponent{
@@ -104,7 +106,6 @@ public class OperateLogUtil {
         });
     }
 
-
     private static void recode(Operate operate){
         if (!checkOperate(operate)) return;
         if (operate.oid == 0) operate.oid = GenUniqueID.milliSecondID.currentTimestampLong();
@@ -114,7 +115,6 @@ public class OperateLogUtil {
         createContent(operate);
         sendContentToKafka(operate);
     }
-
 
     public static void recodeByJsonFormat(String operator, String json){
         Operate operate = GoogleGsonUtil.jsonToJavaBean(json,Operate.class);
@@ -134,20 +134,7 @@ public class OperateLogUtil {
         recode(operate);
     }
 
-    /** 电商平台,用于记录 用户的操作
-     *  例1:
-     *  平台用户 15608447849 注册门店 平平大药房 完成后, 生成门店码 53600000, 调用:
-     *      OperateLogUtil.recodeByDrugLog("15608447849",53600000,"平平大药房","注册成功")
-
-     *  例2:
-     *  平台用户 15608447849 修改账号 调用:
-     *      OperateLogUtil.recodeByDrugLog("15608447849",53600000,"平平大药房","修改账号,15608447849 -> 13873140557")
-
-     *  例4:
-     *  平台用户 15608447849 提交订单 调用:
-     *      OperateLogUtil.recodeByDrugLog("15608447849",53600000,"平平大药房","提交订单,单号:100xxxxxx,订单金额:50RMB...")
-
-     * */
+    /** 电商平台,记录用户的操作 */
     public static void recodeByDrugLog(String account,int companyID,String companyName,String actionLog){
         if (actionLog == null) return;
         String operator = "门店( " + account + "-" + companyID + "-" + companyName + " )";

@@ -56,6 +56,7 @@ public class KConfigBuild {
 
             // 重试次数
             configs.put("retries",mode == 0 ? 1 : 3);
+
             // 重试保证顺序
             configs.put("max.in.flight.requests.per.connection",mode == 0 ? 10 : 1);
 
@@ -64,6 +65,7 @@ public class KConfigBuild {
 
             // 消息批量发送大小 以字节为单位
             configs.put("batch.size",mode == 0 ? 0 : 5 * 1024 * 1024);
+
             // 消息批次最多等待时间 毫秒
             configs.put("linger.ms", mode == 0 ? 0 : 10 * 1000);
 
@@ -73,6 +75,7 @@ public class KConfigBuild {
 
     /*
       消费者
+      禁止手动提交
     */
     static Map<String,Object> genConsumerConfig(String bootstrap_servers,String group_id){
         Map<String, Object> configs = commProp(bootstrap_servers);

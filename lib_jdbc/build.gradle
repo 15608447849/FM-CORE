@@ -1,10 +1,21 @@
 
 dependencies {
-    compile project(':lib_ping')
-    implementation 'org.apache.tomcat:tomcat-jdbc:9.0.35'
-    implementation 'mysql:mysql-connector-java:8.0.20'
-    implementation 'ru.yandex.clickhouse:clickhouse-jdbc:0.2.4'
-    
-
+    implementation project(':lib_ping')
+    compile 'org.apache.tomcat:tomcat-jdbc:9.0.35'
+    compile 'mysql:mysql-connector-java:8.0.20'
+    compile 'ru.yandex.clickhouse:clickhouse-jdbc:0.2.4'
 }
 
+//shadowJar {
+//    minimize()
+//    baseName = 'lib_jdbc'
+//    classifier = null
+//    version = null
+//
+////    dependencies{
+////        include(dependency ('org.apache.tomcat:tomcat-jdbc:9.0.35'))
+////        include(dependency ('mysql:mysql-connector-java:8.0.20'))
+////        include(dependency ('ru.yandex.clickhouse:clickhouse-jdbc:0.2.4'))
+////    }
+//    
+//}

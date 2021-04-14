@@ -11,8 +11,8 @@ buildscript {
 allprojects {
     group 'FM-CORE'
     version '1.0'
-
 }
+
 
 subprojects {
     repositories {
@@ -41,9 +41,25 @@ subprojects {
         options.addStringOption('deprecation', 'true')
     }
     
-    dependencies {
-    }
+//    dependencies {
+//        
+//    }
 
+//    shadowJar{
+//
+//
+//
+//    }
+    
+
+    shadowJar.doLast{
+        copy {
+            from 'build/libs/'
+            into '../jarBuild'
+        }
+//        delete ('build','out')
+        println("打包完成: 包名:  ${baseName} ,时间: ${new Date().format("yyyy-MM-dd HH:mm:ss:SSS")}")
+    }
 }
 
 

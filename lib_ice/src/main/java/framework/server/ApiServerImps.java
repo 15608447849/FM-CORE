@@ -153,8 +153,8 @@ public class ApiServerImps extends IMServerImps{
             queryInfo = printParam(request, __current, api==null? "未使用@api注解": api.detail());
 
             if (api!=null && api.idempotent()){
-                //幂等检查
-                if (idempotent(context,api.idempotentInterval())) throw new IllegalStateException("接口连续调用错误");
+                //连续调用检查
+                if (idempotent(context,api.idempotentInterval())) throw new IllegalStateException("BUSY");
             }
 
             if (interceptor(context)) { //拦截
@@ -167,15 +167,22 @@ public class ApiServerImps extends IMServerImps{
             }
 
         } catch (Exception e) {
+            String callerPath = "接口("+ ( context == null?"unknown":context.getCallerFullPath() ) +")\t";
+            String errorMsg = e.toString();
+
             if(e instanceof NoSuchMethodException){
-                result = Result.create().error("NO MATCH",e.toString());
-            }else{
+                result = Result.create().error(callerPath +" 匹配失败",  errorMsg);
+            }
+            else if (e instanceof IllegalStateException && e.getMessage().equals("BUSY")){
+                result = Result.create().error(callerPath +" 接口繁忙",  errorMsg);
+            }
+            else{
                 Throwable targetEx = e;
                 if (e instanceof InvocationTargetException) {
                     targetEx =((InvocationTargetException)e).getTargetException();
                 }
                 executeErrorStr  = printExceptInfo(targetEx);
-                result = Result.create().error("接口("+ ( context == null?"unknown":context.getCallerFullPath() ) +")错误","EXECUTE ERROR");
+                result = Result.create().error(callerPath+" 执行异常", errorMsg);
             }
         }finally {
             resultString =  convertResultToJson(result);

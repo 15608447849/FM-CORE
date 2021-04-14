@@ -1,0 +1,13 @@
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':lib_ping')
+}
+
+shadowJar {
+    baseName = 'MLTCP'
+    classifier = null
+    version = null
+    manifest {
+        attributes 'Main-Class': 'bottle.tcps.FTCMain'
+    }
+}

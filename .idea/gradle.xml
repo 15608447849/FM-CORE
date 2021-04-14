@@ -8,17 +8,18 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
+            <option value="$PROJECT_DIR$/core-lib-bds" />
             <option value="$PROJECT_DIR$/core-lib-common" />
-            <option value="$PROJECT_DIR$/core-lib-dataware" />
             <option value="$PROJECT_DIR$/core-lib-drug" />
             <option value="$PROJECT_DIR$/core-lib-erp" />
             <option value="$PROJECT_DIR$/lib_cache" />
             <option value="$PROJECT_DIR$/lib_ice" />
             <option value="$PROJECT_DIR$/lib_jdbc" />
-            <option value="$PROJECT_DIR$/lib_mltcp" />
             <option value="$PROJECT_DIR$/lib_mq" />
             <option value="$PROJECT_DIR$/lib_ping" />
-            <option value="$PROJECT_DIR$/mytest" />
+            <option value="$PROJECT_DIR$/lib_ping_common" />
+            <option value="$PROJECT_DIR$/project_mltcp" />
+            <option value="$PROJECT_DIR$/project_test" />
           </set>
         </option>
         <option name="useAutoImport" value="true" />

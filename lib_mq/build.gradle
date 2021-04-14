@@ -1,10 +1,22 @@
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(':lib_ping')
+    implementation project(':lib_ping')
+    // mq
     compile 'org.apache.activemq:activemq-all:5.15.4'
-    
-//    compile 'org.apache.kafka:kafka_2.12:2.4.0'
-//    compile 'org.apache.kafka:kafka-clients:2.4.0'
+    // kafka
     compile 'org.apache.kafka:kafka_2.13:2.6.0'
     compile 'org.apache.kafka:kafka-clients:2.6.0'
 }
+
+//shadowJar {
+//    minimize()
+//    baseName = 'lib_mq'
+//    classifier = null
+//    version = null
+//    
+////    dependencies{
+////        include(dependency ('org.apache.activemq:activemq-all:5.15.4'))
+////        include(dependency ('org.apache.kafka:kafka_2.13:2.6.0'))
+////        include(dependency ('org.apache.kafka:kafka-clients:2.6.0'))
+////    }
+//
+//}

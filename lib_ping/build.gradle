@@ -1,27 +1,23 @@
 dependencies {
-
+    compile project(':lib_ping_common')
     compile fileTree(dir: 'libs', include: ['*.jar'])
 //    compile 'com.google.code.gson:gson:2.8.6'
-//    compile 'org.slf4j:slf4j-simple:1.7.25'
+    
+//    compile 'org.slf4j:slf4j-simple:1.7.30'
+//    compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.11.2'
     compile 'org.apache.logging.log4j:log4j-api:2.11.2'
     compile 'org.apache.logging.log4j:log4j-core:2.11.2'
 
 //    implementation 'org.apache.poi:poi:4.1.2'
-   compile group: 'com.alibaba', name: 'easyexcel', version: '2.2.3'
+   compile group: 'com.alibaba', name: 'easyexcel', version: '2.2.3' //POI 3.17 ,POI-OOXML 3.17
+    
     //拼音
     compile 'com.belerweb:pinyin4j:2.5.1'
     compile 'com.google.guava:guava:10.0.1'
-    shadowJar {
-        baseName = 'lib_ping'
-        classifier = null
-        version = null
+}
 
-//        manifest {
-//            attributes 'Main-Class': 'bottle.util.GaoDeMapUtil'
-//        }
-
-    }
-
-
-    
+shadowJar {
+    baseName = 'lib_ping'
+    classifier = null
+    version = null
 }

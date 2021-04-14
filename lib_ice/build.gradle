@@ -1,13 +1,15 @@
 
-
 dependencies {
-//    compile fileTree(dir: 'libs', include: ['*.jar'])
-    //引用公共库 
-    compile project(':lib_ping')
+    implementation project(':lib_ping')
 }
 
-shadowJar {
-    baseName = 'lib_ice'
-    classifier = null
-    version = 1.0
-}
+//shadowJar {
+////    minimize()
+////    baseName = 'lib_ice'
+////    classifier = null
+////    version = null
+//
+////    dependencies{
+////        exclude(project(':lib_ping'))
+////    }
+//}

@@ -13,6 +13,7 @@ import java.util.*;
  */
 @PropertiesFilePath("/kafkamq.properties")
 public class KafkaUtil {
+    public static boolean isDebug = false;
 
     @PropertiesName("server.address")
     private static String serverAddr;
@@ -37,8 +38,6 @@ public class KafkaUtil {
                     Log4j.info("KAFKA TOPIC : "+ busKey+" -> "+ useTopicName);
                 }
             }
-
-
         } catch (Exception e) {
             Log4j.error("kafka 消息发送工具无法初始化配置文件 kafkamq.properties",e);
         }
@@ -48,11 +47,11 @@ public class KafkaUtil {
     public static boolean asyncSendKFKMessage(String busTopicFlag,String k_msgType,String v_jsonStr,KFKProductionMessageCallback callback){
         String topicName = topicMap.get(busTopicFlag);
         if (topicName == null) {
-            Log4j.info("尝试匹配业务主题( "+ busTopicFlag +" )失败");
+            if (isDebug) Log4j.info("尝试匹配业务主题( "+ busTopicFlag +" )失败");
             return false;
         }
         if (v_jsonStr == null){
-            Log4j.info("请不要尝试发送空内容消息");
+            if (isDebug) Log4j.info("请不要尝试发送空内容消息");
             return false;
         }
 
@@ -63,7 +62,7 @@ public class KafkaUtil {
                     try {
                         production = new KProductionWarp(serverAddr,true);
                     } catch (Exception e) {
-                        Log4j.error("不能创建kafka生产者",e);
+                        if (isDebug) Log4j.error("不能创建kafka生产者",e);
                         return false;
                     }
                 }
@@ -81,7 +80,7 @@ public class KafkaUtil {
     public static boolean addConsume(String groupName,String[] busTopics,KFKConsumeMessageCallback callback){
         try {
             if (callback == null || busTopics == null) {
-                Log4j.info("消费者处理对象不存在或未设置可关联的业务主题");
+                if (isDebug) Log4j.info("消费者处理对象不存在或未设置可关联的业务主题");
                 return false;
             }
 
@@ -89,7 +88,7 @@ public class KafkaUtil {
             for (String busTopic : busTopics) {
                 String name = topicMap.get(busTopic);
                 if (name == null) {
-                    Log4j.info("尝试匹配业务主题( " + busTopic + " )失败");
+                    if (isDebug) Log4j.info("尝试匹配业务主题( " + busTopic + " )失败");
                     return false;
                 }
                 set.add(name);
@@ -98,7 +97,7 @@ public class KafkaUtil {
             String[] topics  =set.toArray(new String[0]);
             KConsumerWarp c = new KConsumerWarp(serverAddr,groupName, callback,topics);
             consumeList.add(c);
-            Log4j.info("加入 kafka消费者( "+c+" ) 消息处理( "+callback+" ) 消费主题( "+ Arrays.toString(topics) +" )"  );
+            if (isDebug) Log4j.info("加入 kafka消费者( "+c+" ) 消息处理( "+callback+" ) 消费主题( "+ Arrays.toString(topics) +" )"  );
             return true;
         } catch (Exception e) {
             Log4j.info("无法加入消费者,"+e.getMessage());
