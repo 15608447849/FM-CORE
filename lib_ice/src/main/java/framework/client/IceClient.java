@@ -2,6 +2,7 @@ package framework.client;
 
 
 import Ice.Communicator;
+import Ice.ObjectAdapter;
 import bottle.util.GoogleGsonUtil;
 import com.onek.server.inf.IParam;
 import com.onek.server.inf.IRequest;
@@ -42,6 +43,14 @@ public class IceClient {
     private boolean isInside = false;
 
     private int timeout = 300000;
+
+    /* 本地通讯端点 */
+    private Ice.ObjectAdapter localAdapter;
+
+    public ObjectAdapter getLocalAdapter(){
+        if (ic == null) throw new IllegalStateException("ICE COMMUNICATION NOT START.");
+        return localAdapter;
+    }
 
     private IceClient(Communicator communicator) {
         ic = communicator;
@@ -102,6 +111,8 @@ public class IceClient {
     public IceClient startCommunication() {
         if (ic == null) {
             ic = Ice.Util.initialize(args);
+            localAdapter = ic.createObjectAdapter("");
+            localAdapter.activate();
         }
         return this;
     }
@@ -121,9 +132,13 @@ public class IceClient {
     /* 设置ICE服务名 */
     private IceClient setProxy(String serverName){
         RequestStore store = getCurrentThreadRequestStore();
-        Ice.ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
-        store.curPrx =  InterfacesPrxHelper.checkedCast(base);
+        store.curPrx = getProxy(serverName);
         return this;
+    }
+
+    public InterfacesPrx getProxy(String serverName){
+        Ice.ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
+        return InterfacesPrxHelper.checkedCast(base);
     }
 
     /* 设置ICE请求信息 */

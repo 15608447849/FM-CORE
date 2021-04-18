@@ -1,6 +1,6 @@
 
 dependencies {
-    implementation project(':lib_ping')
+    compile project(':lib_ping')
 }
 
 //shadowJar {

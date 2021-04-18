@@ -1,21 +1,25 @@
 package framework.server;
 
 import Ice.*;
+import IceInternal.Ex;
+import bottle.properties.abs.ApplicationPropertiesBase;
+import bottle.properties.annotations.PropertiesFilePath;
+import bottle.properties.annotations.PropertiesName;
 import bottle.threadpool.IOThreadPool;
+import bottle.tuples.Tuple2;
 import bottle.util.Log4j;
 import bottle.util.StringUtil;
+import bottle.util.TimeTool;
 import com.onek.server.inf.*;
 
 
 import java.lang.Exception;
-import java.lang.ref.SoftReference;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static framework.server.IMServerImps.ClientAttribute.*;
+
 
 /**
  * @Author: leeping
@@ -24,133 +28,21 @@ import static framework.server.IMServerImps.ClientAttribute.*;
  */
 public class IMServerImps extends _InterfacesDisp implements IPersistentMessage {
 
-    private static final String FLAG = "【长连接服务】 ";
+    static final String FLAG = "【长连接服务】 ";
 
-//    public static boolean isAllowKillClientConnected = true;
-
-    /* 客户端属性 */
-    static final class ClientAttribute implements ConnectionCallback{
-
-        /* 客户端连接,连接属性 */
-        private final static ConcurrentHashMap<PushMessageClientPrx,ClientAttribute> clientAttrMap = new ConcurrentHashMap<>();
-
-        synchronized static void addAttr(PushMessageClientPrx prx){
-            if (prx!=null){
-                ClientAttribute attribute = new ClientAttribute(prx);
-                clientAttrMap.put(prx,attribute);
-            }
-
-        }
-
-        synchronized static void removeAttr(PushMessageClientPrx prx){
-           if (prx!=null){
-               ClientAttribute attr = clientAttrMap.remove(prx);
-               if (attr!=null){
-                   attr.clientPrxRef = null;
-               }
-           }
-        }
-
-        synchronized static ClientAttribute getAttr(PushMessageClientPrx prx){
-            if (prx!=null) return clientAttrMap.get(prx);
-            return null;
-        }
-
-        // 时间格式化
-        private final static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");
-
-        private SoftReference<PushMessageClientPrx> clientPrxRef;
-
-        private final long connectStartTime; //开始时间
-
-        private String addressInfo; //地址信息
-
-        private long lastHeartbeatTimestamp;// 最后心跳时间
-
-        private volatile boolean invalid = false;// 连接无效
-
-        private ClientAttribute(PushMessageClientPrx prx) {
-            if (prx.ice_getConnection() != null) {
-                try {
-                    addressInfo = prx.ice_getConnection().toString().split("\n")[1].replace("remote address =","").trim();
-                } catch (Exception e) {
-                    addressInfo = "获取信息失败";
-                }
-            }
-
-            //设置心跳监听
-            prx.ice_getConnection().setCallback(this);
-
-            //启动心跳
-            prx.ice_getConnection().setACM(
-                    new Ice.IntOptional( 10 ),
-                    new  Ice.Optional<>(ACMClose.CloseOnIdleForceful),
-                    new  Ice.Optional<>(ACMHeartbeat.HeartbeatAlways)
-            );
-
-            this.clientPrxRef = new SoftReference<>(prx);
-            this.connectStartTime = System.currentTimeMillis();
-        }
-
-
-        @Override
-        public void heartbeat(Connection con) {
-            System.out.println(FLAG+ "ice connection heartbeat : "+ con.toString().replace("\n"," <-> "));
-            lastHeartbeatTimestamp = System.currentTimeMillis();
-            this.invalid = false;
-        }
-
-        @Override
-        public void closed(Connection con) {
-            System.out.println(FLAG+ "ice connection closed : "+ con.toString().replace("\n"," <-> "));
-            this.invalid = true;
-            if (clientPrxRef!=null && clientPrxRef.get()!=null){
-                closeClient(clientPrxRef.get());
-            }
-        }
-
-        // 获取连接时间
-        public String getConnectStartTime(){
-            return format.format(new Date(this.connectStartTime));
-        }
-
-        // 获取连接时长
-        public long getConnectedDuration(){
-            return System.currentTimeMillis() - connectStartTime;
-        }
-
-        // 连接时间格式化显示
-        public String getConnectedDurationHumStr(){
-            long second = getConnectedDuration()/1000L;
-            long days = second /86400;//转换天数
-            second = second %86400;//剩余秒数
-            long hours = second /3600;//转换小时数
-            second = second %3600;//剩余秒数
-            long minutes = second /60;//转换分钟
-            second = second %60;//剩余秒数
-            if (0 < days){
-                return days +":"+hours+":"+minutes+":"+second;
-            }else{
-                return hours+":"+minutes+":"+second;
-            }
-        }
-
-    }
-
-    //超时时间毫秒数
-    private final static int PING_TIMEOUT_MAX = 30 * 1000;
-
-    //可重入锁
-    private final ReentrantLock lock = new ReentrantLock();
-
+    // 当前总连接数
+    private static AtomicInteger currentConnectNum = new AtomicInteger();
     //当前在线的所有客户端 <客户端类型<客户端标识,相同客户端列表>>
-    private final HashMap<String,HashMap<String, ArrayList<PushMessageClientPrx>>> onlineClientMaps = new HashMap<>();
-
+    private final static ConcurrentHashMap<String,ConcurrentHashMap<String, List<_LongConnectionCallback>>> onlineClientMaps = new ConcurrentHashMap<>();
+    //等待上线客户端标识
+    private final static LinkedBlockingQueue<Tuple2<Ice.Identity,Current>> waitOnlineClientIdentityQueue = new LinkedBlockingQueue<>();
+    //上线客户端获取离线消息
+    private final static LinkedBlockingQueue<String> offlineClientOnlineQueue = new LinkedBlockingQueue<>();
     //待发送消息存储的队列
-    private final LinkedBlockingQueue<IPMessage> messageQueue = new LinkedBlockingQueue<>();
+    private final static LinkedBlockingQueue<IPMessage> messageQueue = new LinkedBlockingQueue<>();
 
     //消息发送线程池
-    private IOThreadPool sendMessageThreadPool;
+    private static IOThreadPool sendMessageThreadPool;
 
     //通讯持有
     private Communicator communicator;
@@ -166,6 +58,18 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
         if (isPushServer) startPushMessageServer();
     }
 
+    //客户端上线
+    private Runnable identityOnline() {
+        return () -> {
+            while (!communicator.isShutdown()){
+                try {
+                    Tuple2<Identity,Current> tuple2 = waitOnlineClientIdentityQueue.take();
+                    onlineIdentity(tuple2.getValue0(),tuple2.getValue1());
+                } catch (Exception ignored) { }
+            }
+        };
+    }
+
     //消息发送线程
     private Runnable pushRunnable() {
         return () -> {
@@ -173,21 +77,25 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
                 try {
                     IPMessage message = messageQueue.take();
                     sendMessagePrepare(message);
-                } catch (Exception ignored) {
-
-                }
+                } catch (Exception ignored) { }
             }
         };
     }
 
-    //清理无效连接
-    private Runnable clearRunnable(){
+    //客户端上线发送离线消息
+    private Runnable offlineMessage() {
         return () ->{
             //循环检测 -保活
             while (!communicator.isShutdown()){
                 try {
-                    Thread.sleep(PING_TIMEOUT_MAX * 2);
-                    clearInvalidClientConnect(); //监测
+                   String identityName = offlineClientOnlineQueue.take();
+                    //检测是否存在可推送的离线消息
+                    List<IPMessage> messageList = getOfflineMessageFromIdentityName(identityName);
+                    if (messageList!=null && messageList.size()>0){
+                        for (IPMessage message : messageList){
+                            addMessageQueue(message);
+                        }
+                    }
                 } catch (Exception ignored) { }
             }
         };
@@ -197,10 +105,15 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
     private void startPushMessageServer(){
         sendMessageThreadPool = new IOThreadPool();
 
-        //检测清理客户端
-        Thread clearThread = new Thread(clearRunnable());
-        clearThread.setName("im_clear_t_"+clearThread.getId());
-        clearThread.start();
+        //上线接入
+        Thread identityOnline = new Thread(identityOnline());
+        identityOnline.setName("im_identity_online_t_"+identityOnline.getId());
+        identityOnline.start();
+
+        //离线消息
+        Thread offlineMessage = new Thread(offlineMessage());
+        offlineMessage.setName("im_offline_message_t_"+offlineMessage.getId());
+        offlineMessage.start();
 
         //消息发送
         Thread sendMessageThread = new Thread(pushRunnable());
@@ -231,227 +144,266 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
     /* 客户端请求上线 */
     @Override
     public void online(Identity identity, Current __current)  {
-        try {
+        boolean isAddSuccess = waitOnlineClientIdentityQueue.offer(new Tuple2<>(identity,__current));
+        if (!isAddSuccess) {
+            closeConnect(__current.con);
+            Log4j.info(FLAG+"[上线失败] 客户端: " + identity+"("+identity.category+"/"+identity.name+")");
+        }
+    }
+
+    private static void onlineIdentity(Identity identity,Current __current){
+        try{
             String identityName = identity.name;
             String clientType =  identity.category;
             if ( StringUtil.isEmpty(identityName,clientType) ) throw new IllegalArgumentException("客户端信息不完整");
-            Ice.ObjectPrx base = __current.con.createProxy(identity);
-            PushMessageClientPrx client = PushMessageClientPrxHelper.uncheckedCast(base);
-            // 添加到队列
-            addClient(clientType,identityName,client);
 
-        } catch (java.lang.Exception e) {
-            throw new Ice.Exception(e.getCause()){
-                @Override
-                public String ice_name() {
-                    return FLAG+"拒绝连接";
-                }
-            };
+            Ice.ObjectPrx base = __current.con.createProxy(identity).ice_invocationTimeout(15*1000);
+
+            PushMessageClientPrx client = PushMessageClientPrxHelper.uncheckedCast(base);
+//                System.out.println(FLAG+"[预上线] 当前客户端: "+ identity+"("+identity.category+"/"+identity.name+") "
+//                        +" \nice_getConnectionId: "+ client.ice_getConnectionId()
+//                        +" \nice_isConnectionCached: "+ client.ice_isConnectionCached()
+//                        +" \nice_isTwoway: "+ client.ice_isTwoway()
+//                        +" \nice_isCollocationOptimized: "+ client.ice_isCollocationOptimized()
+//                        +" \nice_getInvocationTimeout: "+ client.ice_getInvocationTimeout()
+//                );
+            client.ice_ping();
+            // 添加到队列
+            addClient(clientType,identityName,__current.con,client);
+
+        }catch (Exception e){
+            //关闭连接
+            closeConnect(__current.con);
+            Log4j.info(FLAG+"[上线失败] 客户端: "+ identity + "("+identity.category+"/"+identity.name+")");
+            e.printStackTrace();
         }
     }
 
     /* 添加客户端到队列 */
-    private void addClient(String clientType,String identityName, PushMessageClientPrx clientPrx){
+    private static synchronized void addClient(String clientType, String identityName, Connection connection,PushMessageClientPrx clientPrx){
+
         try{
-            lock.lock();
-            //0.检测连接可达
-            clientPrx.ice_ping();
-            //1.创建属性,设置心跳监听,启动心跳
-            addAttr(clientPrx);
+
+            if (clientType.contains("-ice_heartbeat:")){
+                String[] arr = clientType.split("-ice_heartbeat:");
+                clientType = arr[0];
+            }
+
+            //1.接收客户端心跳,启动服务端心跳
+            _LongConnectionCallback callback = new _LongConnectionCallback(clientType, identityName, clientPrx, connection, new _LongConnectionCallback.ClosedCallback() {
+                @Override
+                public void closed(_LongConnectionCallback callback,String clientType, String identityName, PushMessageClientPrx clientPrx, String connectionInfo, long connectStartTime) {
+                    //移除客户端连接
+                    removeClient(callback,clientType,identityName,clientPrx,connectionInfo,connectStartTime);
+                }
+            });
 
             //2.根据种类判断是否存在,不存在创建并存入
-            HashMap<String, ArrayList<PushMessageClientPrx>> map = onlineClientMaps.computeIfAbsent(clientType, k -> new HashMap<>());
+            ConcurrentHashMap<String, List<_LongConnectionCallback>> map = onlineClientMaps.computeIfAbsent(clientType, k -> new ConcurrentHashMap<>());
+
             //3.根据标识查询客户端列表,不存在列表,创建并存入
-            ArrayList<PushMessageClientPrx> list = map.computeIfAbsent(identityName,k -> new ArrayList<>());
+            List<_LongConnectionCallback> list = map.computeIfAbsent(identityName,k -> new ArrayList<>());
+
             //4.加入列表
-            list.add(clientPrx);
+            list.add(callback);
 
-            Log4j.info(FLAG+"添加客户端("+clientType+" , "+identityName+") , "+
-                    clientPrx.ice_getConnection().toString().replace("\n"," <-> "));
-//                    + ",同类型同标识连接数量:"+ list.size());
+            //5.查询离线消息
+            offlineClientOnlineQueue.offer(identityName);
 
-            //5.检测是否存在可推送的消息
-            getOfflineMessageFromIdentityName(identityName);
+            //6.连接数+1
+            int number = currentConnectNum.incrementAndGet();
+
+            try {
+                Log4j.info(FLAG + "[添加] "+ clientPrx.ice_getIdentity()+" ("+clientType+" , "+identityName+")\t"
+                        + clientPrx.ice_getConnection().toString().replace("\n","<"+connection.type()+">")
+                        + " ,同标识在线数:"+ list.size()
+                        + " ,当前总在线数:"+number);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
         }catch (Exception e){
             Log4j.error(FLAG+"添加客户端("+clientType+" , "+identityName+")失败",e);
-        }finally {
-            lock.unlock();
+            throw e;
+        }
+    }
+
+    // 关闭连接
+    private static void closeConnect(Connection connection) {
+        try{
+            if (connection!=null){
+                connection.close(false);
+            }
+        }catch (Exception e){
+            Log4j.error(FLAG+"关闭连接失败: "+ connection,e);
+        }
+    }
+    private static void closeConnect(PushMessageClientPrx clientPrx) {
+        if (clientPrx!=null){
+
+            Connection connectionCache = null;
+            try{
+                if (clientPrx.ice_isConnectionCached()){
+                    connectionCache = clientPrx.ice_getCachedConnection();
+                    if (connectionCache!=null){
+                        connectionCache.close(true);
+                    }
+                }
+            }catch (Exception e){
+                Log4j.error(FLAG+"关闭代理连接(缓存)失败: "+ connectionCache,e);
+            }
+
+            Connection connection = null;
+            try{
+                connection = clientPrx.ice_getConnection();
+                if (connection!=null){
+                    connection.close(true);
+                }
+            }catch (Exception e){
+                Log4j.error(FLAG+"关闭代理连接失败: "+ connection,e);
+            }
+        }
+    }
+
+    /* 移除客户端从队列 */
+    private static synchronized void removeClient(_LongConnectionCallback callback, String clientType,String identityName, PushMessageClientPrx clientPrx, String connectionInfo,long startTimestamp){
+        try{
+            closeConnect(clientPrx);
+            ConcurrentHashMap<String, List<_LongConnectionCallback>> map = onlineClientMaps.get(clientType);
+            if(map!=null){
+                List<_LongConnectionCallback> list = map.get(identityName);
+                if (list!=null){
+                    list.remove(callback);
+                    int number = currentConnectNum.decrementAndGet();
+
+                    try {
+                        Log4j.info(FLAG + "[移除] " + clientPrx.ice_getIdentity() + " ("+clientType+" , "+identityName+")\t" + connectionInfo
+                                        + " ,在线时长:"+ TimeTool.getConnectedDurationHumStr(System.currentTimeMillis() - startTimestamp)
+                                        + " ,同标识在线数:"+ list.size()
+                                        + " ,当前总在线数:" + number);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    if (list.isEmpty()){
+                        map.remove(identityName);
+                    }
+                }
+            }
+        }catch (Exception e){
+            Log4j.error(FLAG+"移除客户端("+clientType+" , "+identityName+")\t"+connectionInfo+" 失败",e);
         }
     }
 
     /* 获取此标识的全部客户端列表 */
-    private List<PushMessageClientPrx> getClientPrxAllList(String identityName) {
-        final List<PushMessageClientPrx> list = new ArrayList<>();
+    private List<_LongConnectionCallback> getClientPrxAllList(String identityName) {
+        final List<_LongConnectionCallback> list = new ArrayList<>();
 
         // 客户端类型 <-> <客户端标识,客户端列表>
-        for (Map.Entry<String, HashMap<String, ArrayList<PushMessageClientPrx>>> type_identity_clientList_entity : onlineClientMaps.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, List<_LongConnectionCallback>>> type_identity_clientList_entity : onlineClientMaps.entrySet()) {
             // 客户端标识 <-> 客户端列表
-            HashMap<String, ArrayList<PushMessageClientPrx>> identity_clientList_maps = type_identity_clientList_entity.getValue();
-            List<PushMessageClientPrx> clientList = identity_clientList_maps.get(identityName);
+            ConcurrentHashMap<String, List<_LongConnectionCallback>> identity_clientList_maps = type_identity_clientList_entity.getValue();
+            List<_LongConnectionCallback> clientList = identity_clientList_maps.get(identityName);
             if (clientList!=null && clientList.size()>0){
                 list.addAll(clientList);
             }
         }
-
         return list;
     }
 
-    //发送消息到客户端
+    // 发送消息到客户端
     @Override
     public void sendMessageToClient(String identityName, String message, Current __current) {
         //放入消息队列
         addMessageQueue(IPMessage.create(identityName, message));
     }
 
-    //发送消息到客户端
+    // 发送消息到客户端
     private void sendMessagePrepare(IPMessage message) {
             try {
+                waitSendMessage(message);
+                //获取客户端列表
+                final List<_LongConnectionCallback> clientPrxList = getClientPrxAllList(message.identityName);
                 final String _message = convertMessage(message);
                 if (_message == null) return;
-                //获取客户端列表
-                List<PushMessageClientPrx> clientPrxList = getClientPrxAllList(message.identityName);
-                //System.out.println(FLAG+ "发送消息,可接收客户端数量("+clientPrxList.size()+"): "+ message);
-                if (clientPrxList.size()==0){
-                    Log4j.info(FLAG+"没有接收的客户端,丢弃:"+message);
+
+                if (clientPrxList.size()==0 && message.id == 0){
+                    Log4j.info(FLAG+"[丢弃] 客户端不在线\t"+ message.identityName +" > "+ _message);
                     return;
                 }
-                for (final PushMessageClientPrx clientPrx : clientPrxList) {
-                    asyncSendMessageExecute(clientPrx,message,_message);
-                }
+
+                //异步发送
+                sendMessageThreadPool.post(() -> {
+                    for (final _LongConnectionCallback clientPrx : clientPrxList) {
+                        if(clientPrx.sendMessage(_message)){
+                            sendMessageSuccess(message);
+                        }
+                    }
+                });
+
             } catch (Exception e) {
-                Log4j.error(FLAG+"发送消息失败"+message,e);
+                Log4j.error(FLAG+"预处理发送消息失败: "+message,e);
             }
     }
 
-    // 异步发送消息到客户端
-    private void asyncSendMessageExecute(final PushMessageClientPrx clientPrx, IPMessage message, final String _message) {
-        sendMessageThreadPool.post(() -> {
-            ClientAttribute attribute = getAttr(clientPrx);
-//            try {
-//                System.out.println(FLAG+ "发送消息:"+clientPrx.ice_getConnection()+" >> " + _message);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-            if (attribute == null || attribute.invalid) return;
 
-            try {
-                clientPrx.receive(_message);
-                sendMessageSuccess(message);
-                attribute.invalid = false;
-            } catch (Exception e) {
-                Log4j.error(FLAG + "发送失败\t客户端:" + attribute.addressInfo + "\n\t消息体:" + message, e);
-                attribute.invalid = true;
-            }
-        });
-    }
-
-    //存储消息
+    // 存储等待发送的消息未发送将变成离线消息
     @Override
     public long waitSendMessage(IPMessage message) {
-        if (iPushMessageStore!=null){
-            return iPushMessageStore.waitSendMessage(message);
+        long messageID = 0;
+        if (message!=null && message.id==0 && iPushMessageStore!=null){
+            try { messageID = iPushMessageStore.waitSendMessage(message); } catch (Exception ignored) { }
         }
-        return 0;
+        return messageID;
     }
 
-    //改变消息状态
+    // 消息转换
+    @Override
+    public String convertMessage(IPMessage message) {
+        String _message = null;
+        if (message!=null && iPushMessageStore!=null) {
+            _message = message.content;
+            try { _message = iPushMessageStore.convertMessage(message); } catch (Exception ignored) {}
+        }
+        return _message;
+    }
+
+    // 改变消息状态
     @Override
     public void sendMessageSuccess(IPMessage message) {
-        if (iPushMessageStore!=null){
-            iPushMessageStore.sendMessageSuccess(message);
+        if (message!=null && message.id > 0 && iPushMessageStore!=null){
+            try { iPushMessageStore.sendMessageSuccess(message); } catch (Exception ignored) { }
         }
     }
 
-    //加入消息队列
-    private void addMessageQueue(IPMessage message){
-        if (message.id == 0) {
-            //存入数据库
-            message.id = waitSendMessage(message);
-        }
-
-        //放入消息队列 队列已满无法添加返回false
-        boolean isSuccess = messageQueue.offer(message);
-        if (!isSuccess) Log4j.info(FLAG+"发送队列已满,丢弃: "+ message);
-        //else System.out.println(FLAG+ "添加发送消息,队列大小("+messageQueue.size()+"): "+ message);
-
-    }
-
-    //检测是否存在离线消息
+    // 检测是否存在离线消息
     @Override
     public List<IPMessage> getOfflineMessageFromIdentityName(String identityName) {
-        if (iPushMessageStore!=null){
-            List<IPMessage> messageList = iPushMessageStore.getOfflineMessageFromIdentityName(identityName);
-            if (messageList!=null){
-                for (IPMessage message : messageList){
-                    addMessageQueue(message);
-                }
-            }
+        if (identityName!=null && identityName.length()>0 && iPushMessageStore!=null){
+            try {
+                return iPushMessageStore.getOfflineMessageFromIdentityName(identityName);
+            }catch (Exception ignored){ }
         }
         return null;
     }
 
-    //消息转换
-    @Override
-    public String convertMessage(IPMessage message) {
-        if (iPushMessageStore!=null) {
-            return iPushMessageStore.convertMessage(message);
-        }
-        return message.content;
-    }
-
-    //检测连接
-    private void clearInvalidClientConnect() {
-        // 类型-<客户端标识,连接对象列表>
-        for (Map.Entry<String, HashMap<String, ArrayList<PushMessageClientPrx>>> entry : onlineClientMaps.entrySet()) {
-            // 客户端标识-连接对象列表
-            Iterator<Map.Entry<String, ArrayList<PushMessageClientPrx>>> identity_clientList_it = entry.getValue().entrySet().iterator();
-            while (identity_clientList_it.hasNext()) {
-
-                ArrayList<PushMessageClientPrx> clientList = identity_clientList_it.next().getValue();
-                Iterator<PushMessageClientPrx> client_it = clientList.iterator();
-
-                while (client_it.hasNext()) {
-                    PushMessageClientPrx clientPrx = client_it.next();
-                    ClientAttribute attribute = getAttr(clientPrx);
-                    if (attribute == null){
-                        client_it.remove();
-                    }else{
-                        boolean close = false;
-                        if (attribute.invalid) {
-                            //连接无效
-                            close = true;
-                        }else if (attribute.lastHeartbeatTimestamp > 0){
-                            long diff = System.currentTimeMillis() - attribute.lastHeartbeatTimestamp;
-                            if (diff > PING_TIMEOUT_MAX){
-                                close = true;
-                            }
-                        }else{
-                            try {
-                                clientPrx.receive("heartbeat:" + System.currentTimeMillis());
-                            } catch (Exception ignored) {
-                                close = true;
-                            }
-                        }
-                        if (close){
-                            closeClient(clientPrx);
-                        }
-                    }
-
-
-                }
-                if (clientList.isEmpty()) identity_clientList_it.remove();
+    // 加入消息队列
+    private void addMessageQueue(IPMessage message){
+        //放入消息队列 队列已满无法添加返回false
+        boolean isSuccess = messageQueue.offer(message);
+        if (!isSuccess) {
+            if (waitSendMessage(message) == 0) {
+                Log4j.info(FLAG+"[丢弃] 消息队列加入失败\t"+ message.identityName +" > "+ message.content);
             }
         }
     }
 
-
     /* 获取当前在线的客户端标识 */
     public List<String> currentOnlineClientIdentity(){
         List<String> list = new ArrayList<>();
-        for (Map.Entry<String, HashMap<String, ArrayList<PushMessageClientPrx>>> entry : onlineClientMaps.entrySet()) {
-            HashMap<String, ArrayList<PushMessageClientPrx>> map = entry.getValue();
-            for (Map.Entry<String, ArrayList<PushMessageClientPrx>> stringArrayListEntry : map.entrySet()) {
+        for (Map.Entry<String, ConcurrentHashMap<String, List<_LongConnectionCallback>>> entry : onlineClientMaps.entrySet()) {
+            ConcurrentHashMap<String, List<_LongConnectionCallback>> map = entry.getValue();
+            for (Map.Entry<String, List<_LongConnectionCallback>> stringArrayListEntry : map.entrySet()) {
                 list.add(stringArrayListEntry.getKey());
             }
         }
@@ -459,58 +411,32 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
     }
 
     public void stopService(){
+
         messageQueue.clear();
+        offlineClientOnlineQueue.clear();
+        waitOnlineClientIdentityQueue.clear();
+
         closeAllClient();
+
         if (sendMessageThreadPool !=null) {
             sendMessageThreadPool.close();
             sendMessageThreadPool = null;
         }
     }
 
-    private static void closeClient(PushMessageClientPrx clientPrx){
-        try {
-
-            if (clientPrx==null) return;
-
-            String clientType = null;
-            String identityName = null;
-            String connectInfo = null;
-
-            Identity identity = clientPrx.ice_getIdentity();
-            if (identity!=null){
-                clientType = identity.category;
-                identityName =  identity.name;
-            }
-
-            Connection connection = clientPrx.ice_getConnection();
-
-            if (connection != null){
-                connectInfo = clientPrx.ice_getConnection().toString().replace("\n"," <-> ");
-                //强制关闭
-                connection.close(true);
-            }
-
-            Log4j.info(FLAG+"关闭客户端("+clientType+" , "+identityName+")  "+connectInfo);
-
-        } catch (Exception e) {
-            Log4j.error(FLAG+"关闭连接失败",e);
-        }finally {
-            removeAttr(clientPrx);
-        }
-    }
-
     /* 杀死全部客户端 */
-    private void closeAllClient() {
-        Iterator<Map.Entry<String,HashMap<String, ArrayList<PushMessageClientPrx>>>> it = onlineClientMaps.entrySet().iterator();
+    private static synchronized void closeAllClient() {
+        Iterator<Map.Entry<String,ConcurrentHashMap<String, List<_LongConnectionCallback>>>> it = onlineClientMaps.entrySet().iterator();
         while (it.hasNext()){
-            HashMap<String,ArrayList<PushMessageClientPrx>> map = it.next().getValue();
-            Iterator<Map.Entry<String,ArrayList<PushMessageClientPrx>>> it2 = map.entrySet().iterator();
+            ConcurrentHashMap<String,List<_LongConnectionCallback>> map = it.next().getValue();
+            Iterator<Map.Entry<String,List<_LongConnectionCallback>>> it2 = map.entrySet().iterator();
             while (it2.hasNext()){
-                ArrayList<PushMessageClientPrx> list = it2.next().getValue();
-                Iterator<PushMessageClientPrx> it3 = list.iterator();
+                List<_LongConnectionCallback> list = it2.next().getValue();
+                Iterator<_LongConnectionCallback> it3 = list.iterator();
                 while (it3.hasNext()){
-                    PushMessageClientPrx clientPrx = it3.next();
-                    closeClient(clientPrx);
+                    _LongConnectionCallback connectionCallback = it3.next();
+                    closeConnect(connectionCallback.clientPrx);
+                    currentConnectNum.decrementAndGet();
                     it3.remove();
                 }
                 it2.remove();

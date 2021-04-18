@@ -101,9 +101,13 @@ public final class ServerIceBoxImp implements Service {
                 if (!entry.isDirectory() && name.endsWith(".class")) {
                     try {
                         String classFullName = name.replace("/",".").replace(".class","");
-                        if (classFullName.startsWith(packagePath)){
+                        if (classFullName.startsWith(packagePath)
+                                && classFullName.lastIndexOf("$")==-1
+                                && !classFullName.contains(".server.inf.")){
+
+                            boolean skip = false;
+
                             if (skipEndingArr != null && skipEndingArr.length>0){
-                                boolean skip = false;
                                 for (String ending : skipEndingArr){
                                     if (classFullName.endsWith(ending)){
                                         skip = true;
@@ -111,10 +115,18 @@ public final class ServerIceBoxImp implements Service {
                                         break;
                                     }
                                 }
-                                if (skip) continue;
                             }
-                            Class<?> classType = Class.forName(classFullName);
-                            findJarAllClass(classType);
+
+                            if (!skip){
+                                Class<?> classType = Class.forName(classFullName);
+
+                                if (!classType.isInterface()){
+                                    //System.out.println("类加载扫描: " + classType);
+                                    findJarAllClass(classType);
+                                }
+
+                            }
+
                         }
                     } catch (Exception e) {
                         Log4j.error("扫描类文件(" + name+ ")错误",e);
