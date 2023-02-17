@@ -1,0 +1,103 @@
+<html>
+
+<head>
+  <script src="Ice.js"></script>
+  <script src="iceInterfaces.js"></script>
+</head>
+
+<body></body>
+
+</html>
+
+<script>
+	const communicator = Ice.initialize(['--Ice.Default.Locator=ERP/Locator:ws -h 114.115.168.87 -p 5062']);
+
+	/*
+	* author: leezp , 2021/05/27 12:35:00
+	* remake: 已处理连接异常时的自动重连及连接标识改变后自动重连
+	* ice_communicator : Ice.initialize对象
+	* serverName : 后端实现IM服务的节点名
+	* connectHandlerCallback = {
+	*  String getIdentity(); // 连接的标识 ,当标识无效或不存在时返回null,将断开连接直到标识有效,自动重连
+	*  void onMessage(messageString);  // 接收服务端的消息
+	* }
+	*/
+	function ice_keep_connect(ice_communicator,serverName, connectHandlerCallback, autoReconnectedTimeSec=15){
+        if (ice_communicator == null || serverName==null || connectHandlerCallback == null) return;
+
+        Ice.Promise.try(
+                function(){
+                  var identityName = connectHandlerCallback.getIdentity();
+                  if (identityName == null) throw new Error("identity 无效");
+                  var proxy = ice_communicator.stringToProxy(serverName);
+                  return inf.InterfacesPrx.checkedCast(proxy).then(
+                          function(server){
+                            return ice_communicator.createObjectAdapter("").then(
+                                    function (adapter){
+                                      adapter.activate();
+                                      var ident = new Ice.Identity(identityName, "phds_client");
+                                      var receive = new (Ice.Class(inf.PushMessageClient,{
+                                        receive: function(message, current) {
+                                          try {
+                                            connectHandlerCallback.onMessage(message);
+                                          } catch (e) {
+                                            console.info("接收消息成功但未定义接收方法'onMessage(messageString)',message:"+message);
+                                          }
+                                        }
+                                      }))()
+                                      adapter.add(receive,ident);
+                                      proxy.ice_getCachedConnection().setAdapter(adapter);
+                                      proxy.ice_getCachedConnection().setACM(10,Ice.ACMClose.CloseOff,Ice.ACMHeartbeat.HeartbeatAlways)
+                                      proxy.ice_getCachedConnection().setCallback({
+                                        heartbeat: function(connect) {
+
+                                          let _identityName = connectHandlerCallback.getIdentity();
+                                          console.log("heartbeat # " + connect, identityName, _identityName );
+
+                                          if(_identityName==null || _identityName!==identityName){
+                                            connect.close(true);
+                                          }
+                                        },
+                                        closed: function(connect) {
+                                          console.log("closed # " + connect);
+                                          if(autoReconnectedTimeSec>0){
+                                            console.log("连接已关闭,"+autoReconnectedTimeSec+"s后尝试重新连接");
+                                            setTimeout(ice_keep_connect(ice_communicator,serverName, connectHandlerCallback, autoReconnectedTimeSec),autoReconnectedTimeSec * 1000);
+                                          }
+                                        }
+                                      })
+                                      return server.online(ident);
+                                    }
+                            )
+                          }
+                  )
+                }
+        ).exception(function(e){
+
+          if(autoReconnectedTimeSec>0){
+            console.log("连接失败,"+autoReconnectedTimeSec+"s后尝试重新连接",e);
+            setTimeout(function(){
+              ice_keep_connect(ice_communicator,serverName, connectHandlerCallback, autoReconnectedTimeSec);
+            },autoReconnectedTimeSec * 1000)
+          }else{
+            console.error("连接失败",e);
+          }
+        })
+    }
+
+    /************************************************************测试方法**********************************************************/
+    var id = 0;
+    ice_keep_connect(communicator,"imServer",{
+      // PHDS项目, 返回 当前绑定的公司编码; 如果编码=0,返回  null
+      getIdentity:function (){
+        id++;
+        return "ID-" + (id%2); // 测试连接成功后,标识被替换,断开连接并在接下来时间内再次连接
+        //return null;  // 测试标识失效时,间隔时间后,自动尝试连接
+      },
+      onMessage:function(messageString){
+        console.log("接收: "+ messageString);
+      }
+    })
+
+
+</script>
