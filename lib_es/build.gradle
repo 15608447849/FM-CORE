@@ -1,0 +1,9 @@
+
+dependencies {
+    implementation project(':core_1')
+
+    api 'org.apache.lucene:lucene-core:7.3.1'
+    api 'org.elasticsearch:elasticsearch:7.6.0'
+    api 'org.elasticsearch.client:elasticsearch-rest-high-level-client:7.6.0'
+    api 'org.elasticsearch:elasticsearch-analysis-ik:6.1.1'
+}
