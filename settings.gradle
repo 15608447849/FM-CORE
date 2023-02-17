@@ -1,0 +1,20 @@
+rootProject.name = 'FM-CORE'
+
+
+include 'core_1'
+include 'core_2'
+
+include 'lib_cache'
+include 'lib_es'
+include 'lib_jdbc'
+include 'lib_mq'
+include 'lib_ice'
+include 'lib_undertow'
+
+include 'module_test'
+include 'module_mltcp'
+
+//include 'project_drug'
+//include 'project_erp'
+
+

@@ -1,0 +1,10 @@
+
+
+dependencies {
+//    api fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(':core_1')
+}
+
+shadowJar.manifest {
+    attributes 'Main-Class': 'bottle.tcps.FTCMain'
+}

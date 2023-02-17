@@ -1,0 +1,12 @@
+
+dependencies {
+    api project(':core_2')
+
+    //web
+    implementation 'io.undertow:undertow-core:2.0.1.Final'
+    implementation 'io.undertow:undertow-servlet:2.0.1.Final'
+    implementation 'io.undertow:undertow-websockets-jsr:2.0.1.Final'
+    
+}
+
+

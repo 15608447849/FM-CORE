@@ -1,0 +1,148 @@
+buildscript {
+    repositories {
+        maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+
+    dependencies {
+        classpath 'com.github.jengelman.gradle.plugins:shadow:4.0.2'
+    }
+}
+
+subprojects {
+
+    repositories {
+        maven {
+            allowInsecureProtocol = true
+            url = 'http://220.168.73.85:6938/repository/maven-snapshots/'
+        }
+        maven{ url 'https://maven.aliyun.com/repository/central'}
+        maven{ url 'https://maven.aliyun.com/repository/public'}
+        maven{ url 'https://maven.aliyun.com/repository/google'}
+        maven{ url 'https://maven.aliyun.com/repository/apache-snapshots'}
+        maven { url "https://jitpack.io" }
+        mavenCentral()
+        google()
+    }
+    
+    apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: 'maven-publish'
+
+    group = "lee.bottle.tool"
+    version = '0.0.0-SNAPSHOT'
+
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+
+    task sourcesJar(type: Jar) {
+        classifier = 'sources'
+        from sourceSets.main.allSource
+    }
+
+    task javadocJar(type: Jar) {
+        classifier = 'javadoc'
+        from javadoc
+    }
+
+    tasks.withType(JavaCompile) {
+        options.encoding = "UTF-8"
+        options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+    }
+
+    tasks.withType(Javadoc) {
+        options.addStringOption('Xdoclint:none', '-quiet')
+        options.addStringOption('encoding', 'UTF-8')
+        options.addStringOption('charSet', 'UTF-8')
+        options.addStringOption('-Xlint', 'unchecked')
+        options.addStringOption('-Xlint', 'deprecation')
+        options.addStringOption('deprecation', 'true')
+    }
+
+    compileJava {
+        [compileJava]*.options*.encoding = 'UTF-8'
+    }
+
+    artifacts {
+        archives javadocJar, sourcesJar
+    }
+
+
+    configurations {
+        // 依赖排除
+//        all*.exclude group: '', module: ''
+        all{
+            // 依赖缓存时效
+            resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
+            resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+        }
+    }
+    
+    // shadowJar 打包
+    shadowJar.doFirst {
+        println("打包 ${ project.name} ->  ${archiveName}")
+    }
+    shadowJar {
+        baseName =  project.name
+        classifier = null
+        version = null
+    }
+    shadowJar.doLast{
+        File jarfile = file(buildDir.path+"/libs/${archiveName}")
+        println("完成: ${jarfile} ,时间: ${new Date().format("yyyy-MM-dd HH:mm:ss:SSS")} ,大小: ${jarfile.length()}")
+        copy {
+            println("移动 ${jarfile} to ${build_complete_jar_store}")
+            from jarfile
+            into build_complete_jar_store
+        }.with{
+            println("清理 模式: ${build_complete_delete_module} ")
+            if (Integer.parseInt(build_complete_delete_module) == 1){
+                it = project.getTasksByName("clean",true)[0]
+                println("清理 ${it} 执行")
+                it.clean()
+            }
+            if (Integer.parseInt(build_complete_delete_module) == 2){
+                println("清理 全部模块build 执行")
+                project.exec {
+                    executable '../gradlew.bat'
+                    args 'clean'
+                }
+            }
+        }
+    }
+
+    // 发布私服
+    publishing{
+        publications {
+            maven(MavenPublication) {
+                from components.java
+                groupId project.group
+                artifactId project.name
+                version project.version
+                artifact sourcesJar
+            }
+        }
+
+        repositories{
+            // 配置发布的地址
+            maven{
+                name = 'FSpace'
+                allowInsecureProtocol true
+                url = 'http://220.168.73.85:6938/repository/maven-snapshots/'
+                credentials {
+                    username = NEXUS_USERNAME
+                    password = NEXUS_PASSWORD
+                }
+            }
+        }
+    }
+    
+}
+
+
+
+
+
+
+

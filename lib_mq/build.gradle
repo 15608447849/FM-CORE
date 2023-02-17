@@ -1,0 +1,17 @@
+
+dependencies {
+    api project(':core_1')
+    
+    // mq
+    api group: 'org.apache.activemq', name: 'activemq-broker', version: '5.15.4'
+    api group: 'org.apache.activemq', name: 'activemq-pool', version: '5.15.4'
+    
+    // kafka
+    //api 'org.apache.kafka:kafka_2.12:2.6.0'
+    //api 'org.apache.kafka:kafka-clients:2.6.0'
+    api 'org.apache.kafka:kafka_2.13:3.3.1'
+    api 'org.apache.kafka:kafka-clients:3.3.1'
+
+}
+
+

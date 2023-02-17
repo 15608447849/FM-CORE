@@ -1,0 +1,5 @@
+
+dependencies {
+    implementation project(':core_1')
+    api 'redis.clients:jedis:2.9.0'
+}
