@@ -686,7 +686,11 @@ public class HttpUtil {
                 }
             }
 
-            con = (HttpURLConnection) new URL(url).openConnection();
+
+            con = url.startsWith("https") ?
+                    (HttpsURLConnection) new URL(url).openConnection() :
+                    (HttpURLConnection) new URL(url).openConnection();
+
             con.setRequestMethod(type);
             con.setDoOutput(true);
             con.setDoInput(true);
@@ -723,7 +727,11 @@ public class HttpUtil {
         String text = null;
         HttpURLConnection con = null;
         try{
-            con = (HttpURLConnection) new URL(url).openConnection();
+
+            con = url.startsWith("https") ?
+                    (HttpsURLConnection) new URL(url).openConnection() :
+                    (HttpURLConnection) new URL(url).openConnection();
+
             con.setRequestMethod(type);
             con.setDoOutput(true);
             con.setDoInput(true);
@@ -764,5 +772,10 @@ public class HttpUtil {
       return contentToHttpBody(url,type,null,json);
     }
 
+
+    public static void main(String[] args) {
+        String s = HttpUtil.formText("https://api.ems.com.cn","POST",null);
+        System.out.println(s);
+    }
 
 }

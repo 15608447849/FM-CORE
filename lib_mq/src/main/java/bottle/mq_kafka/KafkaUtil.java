@@ -1,20 +1,11 @@
 package bottle.mq_kafka;
 
 import bottle.MQLog;
-import bottle.log.logimp.Log4j2Execute;
 import bottle.properties.abs.ApplicationPropertiesBase;
 import bottle.properties.annotations.PropertiesFilePath;
 import bottle.properties.annotations.PropertiesName;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.config.AbstractConfig;
-import org.apache.logging.log4j.simple.SimpleLoggerContextFactory;
-import org.apache.logging.log4j.spi.LoggerContext;
-import org.apache.logging.log4j.spi.LoggerContextFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
-import java.net.URI;
 import java.util.*;
 
 /**
@@ -41,9 +32,6 @@ public class KafkaUtil {
 
 
     static {
-//        AbstractConfig.
-
-
         ApplicationPropertiesBase.initStaticFields(KafkaUtil.class);
         try {
             if (busTopics!=null){
@@ -53,7 +41,7 @@ public class KafkaUtil {
                     String busKey = arr[0];
                     String useTopicName = arr[1];
                     topicMap.put(busKey,useTopicName);
-                    MQLog.info("KAFKA TOPIC : "+ busKey+" -> "+ useTopicName);
+                    MQLog.info("KAFKA TOPIC : "+ busKey+" ==> "+ useTopicName);
                 }
                 isEnable = true;
             }

@@ -135,7 +135,7 @@ public final class ApplicationPropertiesBase {
             Class<?> caller = Thread.currentThread().getContextClassLoader().loadClass( Thread.currentThread().getStackTrace()[2].getClassName());
             initStaticFields(caller,propPrev,callback,true);
         } catch (Exception e) {
-            Log4j.info("初始化属性Prop失败: " , e.getMessage());
+            Log4j.infoNcb("初始化属性Prop失败: " , e.getMessage());
         }
     }
 
@@ -144,7 +144,7 @@ public final class ApplicationPropertiesBase {
             Class<?> caller = Thread.currentThread().getContextClassLoader().loadClass( Thread.currentThread().getStackTrace()[2].getClassName());
             initStaticFields(caller,null,callback,true);
         } catch (Exception e) {
-            Log4j.info("初始化属性Prop失败: " , e.getMessage());
+            Log4j.infoNcb("初始化属性Prop失败: " , e.getMessage());
         }
     }
 
@@ -153,7 +153,7 @@ public final class ApplicationPropertiesBase {
             Class<?> caller = Thread.currentThread().getContextClassLoader().loadClass( Thread.currentThread().getStackTrace()[2].getClassName());
             initStaticFields(caller,propPrev,null,true);
         } catch (Exception e) {
-            Log4j.info("初始化属性Prop失败: " , e.getMessage());
+            Log4j.infoNcb("初始化属性Prop失败: " , e.getMessage());
         }
     }
 
@@ -162,7 +162,7 @@ public final class ApplicationPropertiesBase {
             Class<?> caller = Thread.currentThread().getContextClassLoader().loadClass(Thread.currentThread().getStackTrace()[2].getClassName());
             initStaticFields(caller,null,null,true);
         } catch (Exception e) {
-            Log4j.info("初始化属性Prop失败: " , e.getMessage());
+            Log4j.infoNcb("初始化属性Prop失败: " , e.getMessage());
         }
     }
 
@@ -178,7 +178,7 @@ public final class ApplicationPropertiesBase {
                 }else{
                     name = instanceClass.getClass().getName();
                 }
-                Log4j.debug(name +"->"+field.getName()+ " = "+ value);
+                //Log4j.debugNcb(name +"->"+field.getName()+ " = "+ value);
 
             } catch (IllegalAccessException e) {
                 e.printStackTrace();

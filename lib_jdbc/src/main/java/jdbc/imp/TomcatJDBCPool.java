@@ -1,9 +1,6 @@
 package jdbc.imp;
 
 
-import com.clickhouse.jdbc.ClickHouseConnection;
-import com.clickhouse.jdbc.ClickHouseDataSource;
-import com.clickhouse.jdbc.JdbcConfig;
 import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.DataBaseType;
@@ -12,8 +9,6 @@ import bottle.tuples.Tuple2;
 
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.apache.tomcat.jdbc.pool.PoolProperties;
-import org.apache.tomcat.jdbc.pool.PooledConnection;
-import org.apache.tomcat.jdbc.pool.ProxyConnection;
 
 import java.lang.reflect.Field;
 
@@ -38,25 +33,26 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
             int cIndex = url.indexOf("?") > 0 ? url.indexOf("?") : url.length();
 
             String dataBaseTypeStr = url.substring(aIndex+1,bIndex-1);
-            dataBaseType = DataBaseType.valueOf(dataBaseTypeStr);
+            DataBaseType dataBaseType = DataBaseType.valueOf(dataBaseTypeStr);
 
             String addressInfoStr = url.substring(bIndex + 2, cIndex);
             int dIndex = addressInfoStr.indexOf("/");
-            address = addressInfoStr.substring(0, dIndex);
-            dataBaseName = addressInfoStr.substring(dIndex + 1);
+            String address = addressInfoStr.substring(0, dIndex);
+            String host = address.split(":")[0];
+            int port = Integer.parseInt(address.split(":")[1]);
+
+            String dataBaseName = addressInfoStr.substring(dIndex + 1);
 
             PoolProperties poolProperties = new PoolProperties();
             setPoolPropertiesValue(poolProperties,props);
-            initPropDefault(poolProperties);
-
-
-
+            initPropDefault(dataBaseType, poolProperties);
+            String username = poolProperties.getUsername();
+            String password = poolProperties.getPassword();
+            // 创建数据源
             dataSource = new DataSource(poolProperties);
-//            dataSource.setPoolProperties(poolProperties);
 
-//            dataSource = new ClickHouseDataSource(url,props);
-//            dataSource.setPoolProperties(poolProperties);
-
+            // 设置数据库连接信息
+            setDataBaseInfo(dataBaseType, host, port, username, password, dataBaseName);
 
         } catch (Exception e) {
             throw new JDBCException(e);
@@ -95,7 +91,7 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
       */
 
     @SuppressWarnings("unchecked")
-    private void initPropDefault(PoolProperties poolProperties) {
+    private static void initPropDefault(DataBaseType dataBaseType,PoolProperties poolProperties) {
 
         poolProperties.setUrl(
                 addKVToURL(poolProperties.getUrl(),
@@ -177,8 +173,8 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
 
     }
 
-// url=jdbc:mysql://localhost:3306/erp-global?
-// verifyServerCertificate=false&useSSL=false&autoReconnect=true&failOverReadOnly=false&useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true&serverTimezone=UTC
+    // url=jdbc:mysql://localhost:3306/erp-global?
+    // verifyServerCertificate=false&useSSL=false&autoReconnect=true&failOverReadOnly=false&useUnicode=true&characterEncoding=utf8&rewriteBatchedStatements=true&serverTimezone=UTC
     private static String _addKVToURL(String url,String kStr,String vStr){
         int sPoint = url.indexOf(kStr);
         if ( sPoint > 0){
@@ -210,7 +206,7 @@ public class TomcatJDBCPool extends JDBCSessionManagerAbs{
         return url;
     }
 
-    private void setPoolPropertiesValue(PoolProperties poolProperties, Properties props) {
+    private static void setPoolPropertiesValue(PoolProperties poolProperties, Properties props) {
         Field[] fields = poolProperties.getClass().getDeclaredFields();
 
         String name = null;

@@ -1,9 +1,9 @@
-package bottle.log.logimp;
+package bottle.log;
 
-import bottle.log.LogPrintI;
 
-public class Log4j2Execute implements LogPrintI {
-    private static final org.apache.logging.log4j.Logger log4j2 = org.apache.logging.log4j.LogManager.getLogger();
+
+public final class  Log4j2Execute implements LogPrintI {
+    private static final org.apache.logging.log4j.Logger log4j2 = org.apache.logging.log4j.LogManager.getLogger(Object.class);
 
     static {
         try {
@@ -37,11 +37,24 @@ public class Log4j2Execute implements LogPrintI {
     }
 
     @Override
-    public void error(Throwable e) { log4j2.error(e); }
+    public void error(Throwable e) {
+
+        try {
+            log4j2.error(e);
+        } catch (Exception ex) {
+            e.printStackTrace();
+            ex.printStackTrace();
+        }
+    }
 
     @Override
     public void error(Object message, Throwable e) {
-        log4j2.error(message,e);
+        try {
+            log4j2.error(message,e);
+        } catch (Exception ex) {
+            e.printStackTrace();
+            ex.printStackTrace();
+        }
     }
 
     @Override
@@ -52,4 +65,8 @@ public class Log4j2Execute implements LogPrintI {
         log4j2.fatal(message);
     }
 
+    @Override
+    public String toString() {
+        return super.toString()+",imp=("+log4j2+")";
+    }
 }

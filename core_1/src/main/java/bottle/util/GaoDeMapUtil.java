@@ -24,25 +24,36 @@ import static java.lang.Double.parseDouble;
  */
 public class GaoDeMapUtil {
 
-    private static String[] apiKeys = new String[]{
-            "c59217680590515b7c8369ff5e8fe124",//李世平
-            "b6ec1c997ac8ef26afd11b21cae2003e",//章广
-            "da009b945cd0372558e28172cba81a9c",//王兵富
-            "03b4343da153d4b5f5653badd0f767a0",//廖舟
-            "76094d7529daad32f548b48feedcdea3",//罗阳
-            "5ef21f0bcc58c9d8ac6371d7bb92323b",//小金
-            "aae4e6d95c62d7baa4701842d26836fb",//刘洋
-            "0e57c61aa53e9788c3d8ba5a2d023375",//小皮
-            "9266204ef40b756e0d3d71a83f4153ad"//祝震
+//    private static String[] apiKeys = new String[]{
+//            "c59217680590515b7c8369ff5e8fe124",//李世平
+//            "b6ec1c997ac8ef26afd11b21cae2003e",//章广
+//            "da009b945cd0372558e28172cba81a9c",//王兵富
+//            "03b4343da153d4b5f5653badd0f767a0",//廖舟
+//            "76094d7529daad32f548b48feedcdea3",//罗阳
+//            "5ef21f0bcc58c9d8ac6371d7bb92323b",//小金
+//            "aae4e6d95c62d7baa4701842d26836fb",//刘洋
+//            "0e57c61aa53e9788c3d8ba5a2d023375",//小皮
+//            "9266204ef40b756e0d3d71a83f4153ad"//祝震
+//    };
+
+
+    private static final List<String> apiKeys = new ArrayList<String>(){
+        {
+            //李世平
+            add("c59217680590515b7c8369ff5e8fe124");
+        }
     };
+
+    public static void addKeys(String... keys){
+        apiKeys.addAll(Arrays.asList(keys));
+    }
+
     private static int currentApiIndex = 0;
 
     private static String getApiKey(){
-        if (currentApiIndex >=apiKeys.length) return null;
-        return apiKeys[currentApiIndex];
+        if (currentApiIndex >=apiKeys.size()) return null;
+        return apiKeys.get(currentApiIndex);
     }
-
-
 
     public static class Point{
         public double lng;
@@ -71,7 +82,7 @@ public class GaoDeMapUtil {
         }
     }
 
-    private static class DataBean {
+    private static final class DataBean {
         String location;
         String adcode;
         String polyline;
@@ -82,7 +93,7 @@ public class GaoDeMapUtil {
         Object township;
     }
 
-    private static class JsonBean{
+    private static final class JsonBean{
         int status;
         int infocode;
         String info;
@@ -243,7 +254,7 @@ public class GaoDeMapUtil {
     /**
      * 获取地址经纬度
      */
-    public static Point addressConvertLatLon(String address){
+    public static  Point addressConvertLatLon(String address){
         return new Point(Objects.requireNonNull(addressConvertLatLon(address, 0)).location);
     }
 
@@ -283,7 +294,6 @@ public class GaoDeMapUtil {
     public static String[] ipConvertAddress(String ip){
         return ipConvertAddress(ip.trim(),0);
     }
-
 
 
     /**
@@ -423,6 +433,7 @@ public class GaoDeMapUtil {
         }
         return list;
     }
+
     //[x,y;x,y]  -> list<double[]>
     private static String pointArray2ListDouble(String json){
        return GoogleGsonUtil.javaBeanToJson(pointArray2ListDouble(Objects.requireNonNull(GoogleGsonUtil.jsonToJavaBean(json, Double[].class))));
@@ -462,6 +473,7 @@ public class GaoDeMapUtil {
         }
         return null;
     }
+
     //处理 | , -> {[x,y] [x,y]} -> LIST<POINT>[]
     private static List<List<Point>> handleSourcePolyline(String line){
         String[] arr = line.split("\\|");
@@ -472,7 +484,6 @@ public class GaoDeMapUtil {
         }
         return listArr;
     }
-
 
 
     private static String getSysClipboardText() throws Exception{
@@ -530,7 +541,7 @@ public class GaoDeMapUtil {
                                 label.setText("复制内容,无法解析");
                             }
                         }
-                        Thread.sleep(500);
+                        Thread.sleep(500L);
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -539,9 +550,6 @@ public class GaoDeMapUtil {
         }.start();
 
         frame.setVisible(true);
-
-
-
     }
 
 

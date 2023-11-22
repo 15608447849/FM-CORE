@@ -11,14 +11,14 @@ import static bottle.log.PrintLogThread.sdfDict;
 
 public class MQLog {
     public static void info(String message){
-        PrintLogThread.addMessageQueue(new LogBean(LogLevel.info,message));
+        PrintLogThread.addMessageQueue(new LogBean(LogLevel.info,message).setEnableCallback(false));
     }
 
     public static void debug(String message){
-        PrintLogThread.addMessageQueue(new LogBean(LogLevel.debug,message));
+        PrintLogThread.addMessageQueue(new LogBean(LogLevel.debug,message).setEnableCallback(false));
     }
     public static void warn(String message){
-        PrintLogThread.addMessageQueue(new LogBean(LogLevel.warn,message));
+        PrintLogThread.addMessageQueue(new LogBean(LogLevel.warn,message).setEnableCallback(false));
     }
 
     public static void activemq_write(String flag,String message){
@@ -30,12 +30,12 @@ public class MQLog {
         String dict = "./logs/activemq/"+flag;
         String file = PrintLogThread.sdfFile.format(new Date());
 
-        PrintLogThread.addMessageQueue(new LogBean(dict,file,_message));
+        PrintLogThread.addMessageQueue(new LogBean(dict,file,_message).setEnableCallback(false));
     }
 
     public static void error(String desc,Throwable e){
         desc = desc == null ? "":desc ;
-        PrintLogThread.addMessageQueue(new LogBean(LogLevel.error,desc,e));
+        PrintLogThread.addMessageQueue(new LogBean(LogLevel.error,desc,e).setEnableCallback(false));
     }
 
 

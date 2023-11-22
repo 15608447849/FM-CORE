@@ -7,14 +7,20 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import static bottle.log.PrintLogThread.except;
+
 public class WriteLogThread extends Thread {
-    private final static LinkedBlockingQueue<String[]> writeFieContentQueue = new LinkedBlockingQueue<>();
+    private static final LinkedBlockingQueue<String[]> writeFieContentQueue = new LinkedBlockingQueue<>();
 
     public static void addWriteFileQueue(String directory, String file, String content) {
-        if (!content.endsWith("\n")){
-            content+="\n";
+        try {
+            if (!content.endsWith("\n")){
+                content+="\n";
+            }
+            writeFieContentQueue.add(new String[]{directory,file,content});
+        } catch (Exception e) {
+            except(e);
         }
-        writeFieContentQueue.offer(new String[]{directory,file,content});
     }
 
     // 对指定文件追加写入内容
@@ -35,26 +41,23 @@ public class WriteLogThread extends Thread {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+           except(e);
         }
     }
 
-    private static Thread thread = new Thread(){
-        @Override
-        public void run() {
-            while (true){
-                try {
-                    String[] arr = writeFieContentQueue.take();
-                    appendContentToFile(arr[0],arr[1],arr[2]);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+    private static final Thread thread = new Thread(() -> {
+        while (true){
+            try {
+                String[] arr = writeFieContentQueue.take();
+                appendContentToFile(arr[0],arr[1],arr[2]);
+            } catch (Exception e) {
+               except(e);
             }
         }
-    };
+    });
 
     static {
-        thread.setName("write-log-file-"+thread.getId());
+        thread.setName("wlt-"+thread.getId());
         thread.setDaemon(true);
         thread.start();
     }

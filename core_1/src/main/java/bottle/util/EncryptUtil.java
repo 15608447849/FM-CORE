@@ -201,7 +201,7 @@ public class EncryptUtil {
                     writer.write(cipher.doFinal(block));
                 }
 
-                return new String(writer.toByteArray(), characterEncoding);
+                return writer.toString(characterEncoding);
             }
         }
 
@@ -1344,7 +1344,9 @@ public class EncryptUtil {
             }
         }
     }
-
+    /**
+     * 获取文件md5的byte值
+     */
     public static byte[] getFileMd5(File file,long startPort,long endPort){
         byte[] result = null;
         RandomAccessFile randomAccessFile = null;
@@ -1411,12 +1413,6 @@ public class EncryptUtil {
         }
         return result;
     }
-    public static String getBytesMd5ByString(byte[] buffer){
-        return byteToHexString(getBytesMd5(buffer));
-    }
-    public static String getBytesMd5ByString(byte[] buffer,int offset,int len){
-        return byteToHexString(getBytesMd5(buffer,offset,len));
-    }
     /**
      * byte->16进制字符串
      */
@@ -1437,22 +1433,31 @@ public class EncryptUtil {
     }
 
     /**
+     * 获取一段字节数组的md5转成16进制字符串
+     */
+    public static String getBytesMd5ByString(byte[] buffer){
+        return byteToHexString(getBytesMd5(buffer));
+    }
+    public static String getBytesMd5ByString(byte[] buffer,int offset,int len){
+        return byteToHexString(getBytesMd5(buffer,offset,len));
+    }
+
+
+    /**
      * 比较MD5字节数组
      */
     public static boolean isEqualMD5(byte[] digesta,byte[] digestb){
-        try {
-            MessageDigest messagedigest = MessageDigest.getInstance("MD5");
-            return messagedigest.isEqual(digesta,digestb);
-        } catch (NoSuchAlgorithmException e) {
-        }
-        return false;
+        return MessageDigest.isEqual(digesta,digestb);
     }
 
+    /**
+     * 比较文件的MD5
+     * */
     public static boolean isEqualFileMd5(File src,File dest){
         return isEqualMD5(getFileMd5(src), getFileMd5(dest));
     }
 
-    //Mark Adler发明的adler-32算法
+    /** adler-32算法 */
     public static  String adler32Hex(byte[] data){
         int a =1,b = 0;
         for (int index = 0; index < data.length; ++index)
@@ -1471,7 +1476,7 @@ public class EncryptUtil {
     }
 
 
-    //Mark Adler发明的adler-32算法
+    /* adler-32算法 */
     public static  String adler32Hex(byte[] data,int offset,int len){
         int a =1,b = 0;
         for (int index = offset; index < len; ++index)
@@ -1482,44 +1487,45 @@ public class EncryptUtil {
         return Integer.toHexString((b << 16) | a);
     }
 
-        //sha256加密
-        public static String SHA256(String content,String charsetName) {
-            // 是否是有效字符串
-            if (content != null && content.length() > 0) {
-                try {
-                    // SHA 加密开始
-                    // 创建加密对象 并傳入加密類型
-                    MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-                    // 传入要加密的字符串
-                    messageDigest.update(content.getBytes(charsetName));
-                    // 得到 byte 類型结果
-                    byte[] bytes = messageDigest.digest();
-                    return byteToHexString(bytes);
-                } catch (Exception e) {
-                    return null;
-                }
+    /** sha256加密 */
+    public static String SHA256(String content,String charsetName) {
+        // 是否是有效字符串
+        if (content != null && content.length() > 0) {
+            try {
+                // SHA 加密开始
+                // 创建加密对象 并傳入加密類型
+                MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
+                // 传入要加密的字符串
+                messageDigest.update(content.getBytes(charsetName));
+                // 得到 byte 類型结果
+                byte[] bytes = messageDigest.digest();
+                return byteToHexString(bytes);
+            } catch (Exception e) {
+                return null;
             }
-            return null;
         }
+        return null;
+    }
 
-        public  static String SHA1(String content,String charsetName){
-            // 是否是有效字符串
-            if (content != null && content.length() > 0) {
-                try {
-                    // SHA 加密开始
-                    // 创建加密对象 并傳入加密類型
-                    MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
-                    // 传入要加密的字符串
-                    messageDigest.update(content.getBytes(charsetName));
-                    // 得到 byte 類型结果
-                    byte[] bytes = messageDigest.digest();
-                    return byteToHexString(bytes);
-                } catch (Exception e) {
-                    return null;
-                }
+    /** SHA1加密 */
+    public  static String SHA1(String content,String charsetName){
+        // 是否是有效字符串
+        if (content != null && content.length() > 0) {
+            try {
+                // SHA 加密开始
+                // 创建加密对象 并傳入加密類型
+                MessageDigest messageDigest = MessageDigest.getInstance("SHA-1");
+                // 传入要加密的字符串
+                messageDigest.update(content.getBytes(charsetName));
+                // 得到 byte 類型结果
+                byte[] bytes = messageDigest.digest();
+                return byteToHexString(bytes);
+            } catch (Exception e) {
+                return null;
             }
-            return null;
         }
+        return null;
+    }
 
 
 

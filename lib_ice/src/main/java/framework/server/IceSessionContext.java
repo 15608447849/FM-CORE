@@ -327,6 +327,10 @@ public class IceSessionContext {
         return EncryptUtil.encryption(str);
     }
 
+    public void setParam(IParam param) {
+        this.param = param;
+    }
+
     protected void initHook(Current current, String packagePath, IRequest request) {
         //初始化钩子
 

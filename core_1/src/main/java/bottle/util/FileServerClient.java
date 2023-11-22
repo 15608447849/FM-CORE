@@ -1,6 +1,6 @@
 package bottle.util;
 
-import bottle.log.MLOG;
+
 import com.google.gson.reflect.TypeToken;
 
 import java.io.*;
@@ -39,7 +39,7 @@ public class FileServerClient {
     /***************************************************************文件操作方法********************************************************************/
     /** 文件上传到服务器 */
     public static String uploadFile(String url, String serverFilePath, String fileName, InputStream fio){
-        if(isDebug) MLOG.info("上传文件: "+ url + " , "+serverFilePath+" , "+ fileName);
+        if(isDebug) Log4j.info("上传文件: "+ url + " , "+serverFilePath+" , "+ fileName);
         return new HttpRequest().addStream(fio,serverFilePath, fileName)
                 .fileUploadUrl(url)
                 .getRespondContent();
@@ -49,7 +49,7 @@ public class FileServerClient {
     public static String uploadImage(String url, String serverFilePath, String fileName,
                                      boolean isCompress,boolean isLogo,boolean isThumb,
                                      InputStream fio){
-        if(isDebug) MLOG.info("上传图片: "+ url + " , "+serverFilePath+" , "+ fileName);
+        if(isDebug) Log4j.info("上传图片: "+ url + " , "+serverFilePath+" , "+ fileName);
         //上传图片
         return new HttpRequest().addStream(fio, serverFilePath,  fileName)
                 .setCompress(isCompress) //服务器压缩
@@ -63,7 +63,7 @@ public class FileServerClient {
     /** 检查一个具体文件是否存在 */
     public static boolean isFileExist(String url,String filePath) {
         try {
-            if(isDebug) MLOG.info("检查文件: "+ url + " , "+ filePath);
+            if(isDebug) Log4j.info("检查文件: "+ url + " , "+ filePath);
             String json = new HttpRequest().existTargetFile(url,filePath).getRespondContent();
             if (StringUtil.isEmpty(json) || json.contains("java.net.SocketTimeoutException")) return false;
 
@@ -72,7 +72,7 @@ public class FileServerClient {
             if(servletResult!=null && servletResult.code==200) return servletResult.data;
 
         } catch (Exception e) {
-            MLOG.error("检查远程文件存在错误 "+filePath ,e);
+            Log4j.error("检查远程文件存在错误 "+filePath ,e);
         }
         return false;
     }
@@ -80,7 +80,7 @@ public class FileServerClient {
     /** 检查目录存在哪些文件 */
     public static List<String> showDirFilesPath(String url, String dirPath, boolean isSubDir) {
         try {
-            if(isDebug) MLOG.info("遍历目录: "+ url + " , "+dirPath);
+            if(isDebug) Log4j.info("遍历目录: "+ url + " , "+dirPath);
             String json = new HttpRequest().getTargetDirFileList(url,dirPath,isSubDir).getRespondContent();
             if (StringUtil.isEmpty(json) || json.contains("java.net.SocketTimeoutException")) return null;
 
@@ -89,7 +89,7 @@ public class FileServerClient {
 
             if(servletResult!=null && servletResult.code==200) return servletResult.data;
         } catch (Exception e) {
-            MLOG.error("远程文件遍历错误 "+dirPath  ,e);
+            Log4j.error("远程文件遍历错误 "+dirPath  ,e);
         }
         return null;
     }
@@ -106,7 +106,7 @@ public class FileServerClient {
 
             if(servletResult!=null && servletResult.code==200) return true;
         }catch (Exception e){
-            MLOG.error("远程文件删除错误 " + Arrays.toString(deleteFileList),e);
+            Log4j.error("远程文件删除错误 " + Arrays.toString(deleteFileList),e);
         }
         return false;
     }
@@ -114,7 +114,7 @@ public class FileServerClient {
     /** 批量下载 */
     public static String batchDownloadUrl(String url,List<String> dictList){
         try {
-            if(isDebug) MLOG.info("批量下载: "+ url + " , "+ GoogleGsonUtil.javaBeanToJson(dictList));
+            if(isDebug) Log4j.info("批量下载: "+ url + " , "+ GoogleGsonUtil.javaBeanToJson(dictList));
             String json = new HttpRequest().getBatchDownloadFileZipUrl(url,dictList).getRespondContent();
             if (StringUtil.isEmpty(json) || json.contains("java.net.SocketTimeoutException")) return null;
 
@@ -123,7 +123,7 @@ public class FileServerClient {
             if(servletResult!=null && servletResult.code==200) return servletResult.data;
 
         } catch (Exception e) {
-            MLOG.error("批量打包ZIP错误 " + GoogleGsonUtil.javaBeanToJson(dictList),e);
+            Log4j.error("批量打包ZIP错误 " + GoogleGsonUtil.javaBeanToJson(dictList),e);
         }
         return null;
     }
@@ -143,7 +143,7 @@ public class FileServerClient {
                 return servletResult.data.get(0);
             }
         } catch (Exception e) {
-            MLOG.error("文件上传错误 " + dict + "/" +fileName ,e);
+            Log4j.error("文件上传错误 " + dict + "/" +fileName ,e);
         }
         return null;
     }
@@ -154,7 +154,7 @@ public class FileServerClient {
             UploadFileItem item = uploadFileGetUploadItem(url,dict,fileName,in);
             if(item!=null) return item.httpUrl;
         } catch (Exception e) {
-            MLOG.error("文件上传错误 " + dict + "/" +fileName ,e);
+            Log4j.error("文件上传错误 " + dict + "/" +fileName ,e);
         }
         return null;
     }
@@ -171,7 +171,7 @@ public class FileServerClient {
             if (downPathURL == null) throw new IllegalArgumentException(suffix + "文件 上传失败,无法获取下载URL");
             return downPathURL;
         }catch (Exception e){
-            MLOG.error("EXCEL写入文件服务器并获取下载地址错误",e);
+            Log4j.error("EXCEL写入文件服务器并获取下载地址错误",e);
         }
         return "";
     }
@@ -181,7 +181,7 @@ public class FileServerClient {
         try (ByteArrayInputStream pis = new ByteArrayInputStream(pos.toByteArray())) {
            return uploadSpecSuffixFileToServerReturnUrl(url,suffix,pis);
         }catch (Exception e){
-            MLOG.error("EXCEL写入文件服务器并获取下载地址错误",e);
+            Log4j.error("EXCEL写入文件服务器并获取下载地址错误",e);
         }
         return "";
     }
@@ -204,7 +204,7 @@ public class FileServerClient {
                 return servletResult.data.get(0);
             }
         } catch (Exception e) {
-            MLOG.error("文件上传错误 " + serverFilePath + "/" +fileName ,e);
+            Log4j.error("文件上传错误 " + serverFilePath + "/" +fileName ,e);
         }
         return null;
     }
@@ -216,7 +216,7 @@ public class FileServerClient {
             UploadFileItem item = uploadImageGetUploadItem(url,serverFilePath,fileName,isCompress,isLogo,isThumb,fio);
             if(item!=null) return item.httpUrl;
         } catch (Exception e) {
-            MLOG.error("文件上传错误 " + serverFilePath + "/" +fileName ,e);
+            Log4j.error("文件上传错误 " + serverFilePath + "/" +fileName ,e);
         }
         return null;
     }

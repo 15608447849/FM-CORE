@@ -1,7 +1,11 @@
 package bottle.log;
 
 public class LogBean {
+    protected boolean isEnableCallback = true;
     public final String threadName = Thread.currentThread().getName();
+    public final long threadId = Thread.currentThread().getId();
+    public final String threadState = Thread.currentThread().getState().name();
+    public final long timestamp = System.currentTimeMillis();
     public final String directory;
     public final String file;
     public final LogLevel level;
@@ -35,5 +39,9 @@ public class LogBean {
         this.e = e;
     }
 
+    public LogBean setEnableCallback(boolean flag){
+        this.isEnableCallback = flag;
+        return this;
+    }
 
 }

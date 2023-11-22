@@ -21,6 +21,15 @@ public abstract class Tuple  {
         return valueArray[pos];
     }
 
+    public Object[] getValueArray() {
+        return valueArray;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString()+Arrays.toString(valueArray);
+    }
+
     public interface IValue1<X> {
         X getValue0();
     }
@@ -39,8 +48,5 @@ public abstract class Tuple  {
     }
 
 
-    @Override
-    public String toString() {
-        return Arrays.toString(valueArray);
-    }
+
 }

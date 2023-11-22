@@ -2,6 +2,7 @@ package bottle.mq_kafka;
 
 
 import bottle.MQLog;
+import bottle.log.PrintLogThread;
 import bottle.threadpool.IOThreadPool;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.errors.SerializationException;
@@ -33,7 +34,7 @@ public class KProductionWarp implements KFKWarpI{
     // 同步发送
     public void sendMessageToTopicSync(final String topicName,final String messageType,final String jsonContent,KFKProductionMessageCallback callback){
         if (jsonContent.getBytes().length >  5 * 1024 * 1024 ){
-            MQLog.warn("KAFKA生产-待发送数据文本内容超过5M大小限制,已丢弃\n"+jsonContent);
+            System.out.println(PrintLogThread.sdf.format(System.currentTimeMillis())+" KAFKA生产-待发送数据文本内容超过5M大小限制,已丢弃,内容如下\n\t"+jsonContent);
             return;
         }
 

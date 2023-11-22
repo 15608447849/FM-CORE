@@ -19,7 +19,7 @@ public class IOThreadPool extends Thread implements IThreadPool {
     }
 
     public IOThreadPool() {
-        this(500);
+        this(1500);
     }
 
     //核心线程数,最大线程数,非核心线程空闲时间,存活时间单位,线程池中的缓冲队列

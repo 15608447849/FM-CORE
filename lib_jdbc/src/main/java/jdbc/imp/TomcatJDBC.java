@@ -1,5 +1,6 @@
 package jdbc.imp;
 
+import bottle.tuples.Tuple5;
 import bottle.util.StringUtil;
 import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
@@ -55,7 +56,7 @@ public class TomcatJDBC {
     /* 数据库类型@存储过程/函数名 <-> 数据库类型@数据库名 */
     private final static Map<String,Set<String>> procedureDbAllMap = new HashMap<>();
 
-    //数据库类型@表名 <->列对象列表
+    /* 数据库类型@表名 <-> 列对象列表 */
     private final static Map<String,List<TableRow>> tableRowsAllMap = new HashMap<>();
 
     /* 获取文件 */
@@ -68,27 +69,31 @@ public class TomcatJDBC {
             if (!isCreate) throw new RuntimeException("无法创建文件夹: " + dir);
             File resourcesOut = dir.getParentFile();
             URL url = clazz.getProtectionDomain().getCodeSource().getLocation();
-            JarFile localJarFile = new JarFile(new File(url.getPath()));
-            Enumeration<JarEntry> entries = localJarFile.entries();
-            while (entries.hasMoreElements()) {
-                JarEntry jarEntry = entries.nextElement();
-                if (jarEntry.isDirectory()){
-                    continue;
-                }
-                String innerPath = jarEntry.getName();
-                if(innerPath.startsWith(dirName)){
-                    try(InputStream in =  clazz.getClassLoader().getResourceAsStream(innerPath)){
-                        if (in==null) continue;
-                        try(FileOutputStream out = new FileOutputStream(new File(resourcesOut,innerPath))){
-                            byte[] bytes = new byte[1024];
-                            int len;
-                            while ( (len = in.read(bytes) )> 0 ){
-                                out.write(bytes,0,len);
+            try(JarFile localJarFile = new JarFile(new File(url.getPath()));){
+
+                Enumeration<JarEntry> entries = localJarFile.entries();
+                while (entries.hasMoreElements()) {
+                    JarEntry jarEntry = entries.nextElement();
+                    if (jarEntry.isDirectory()){
+                        continue;
+                    }
+                    String innerPath = jarEntry.getName();
+                    if(innerPath.startsWith(dirName)){
+                        try(InputStream in =  clazz.getClassLoader().getResourceAsStream(innerPath)){
+                            if (in==null) continue;
+                            try(FileOutputStream out = new FileOutputStream(new File(resourcesOut,innerPath))){
+                                byte[] bytes = new byte[1024];
+                                int len;
+                                while ( (len = in.read(bytes) )> 0 ){
+                                    out.write(bytes,0,len);
+                                }
                             }
                         }
                     }
                 }
+
             }
+
         }
 
         if (!dir.isDirectory()) throw new FileNotFoundException(dirName +" is not directory");
@@ -105,7 +110,7 @@ public class TomcatJDBC {
     }
 
     /** 使用一个resources目录下指定目录所有配置文件初始化连接池 */
-    public static void initialize(String dirName,Class clazz) throws Exception{
+    public static void initialize(String dirName,Class<?> clazz) throws Exception{
         File[] files = getDicFile(dirName==null?"": dirName,clazz);
         if (files==null || files.length == 0) throw new IllegalArgumentException("dir name = '"+dirName+"' ,class = '"+clazz+"' No connection profile exists.");
         initialize(files);
@@ -150,12 +155,14 @@ public class TomcatJDBC {
         genTableInfo();
     }
 
+    /** 根据属性对象初始化连接池 */
     public static TomcatJDBCPool initializeByProperties(Properties prop) throws JDBCException{
         if (prop == null) return null;
         TomcatJDBCPool pool = new TomcatJDBCPool();
         pool.initialize(prop);
         return pool;
     }
+    /** 根据数据流对象初始化连接池 */
     public static TomcatJDBCPool initializeByInputStream(InputStream is) throws JDBCException{
         if (is == null) return null;
         TomcatJDBCPool pool = new TomcatJDBCPool();
@@ -289,8 +296,16 @@ public class TomcatJDBC {
 
     }
 
-    /* 获取数据库池对象列表 */
-    private static TomcatJDBCPool getDataBasePoolList(DataBaseType dataBaseType, String databaseName){
+    /**
+     * 获取数据库连接信息:主机,端口,用户名,密码,数据库
+     * */
+    public static Tuple5<String,Integer,String,String,String> getDataBasePoolConnectInfo(DataBaseType dataBaseType, String databaseName){
+        TomcatJDBCPool dbp = getDataBasePool(dataBaseType, databaseName);
+        return new Tuple5<>(dbp.getHost(),dbp.getPort(),dbp.getUsername(),dbp.getPassword(),dbp.getDataBaseName());
+    }
+
+    /* 获取数据库池对象 */
+    private static TomcatJDBCPool getDataBasePool(DataBaseType dataBaseType, String databaseName){
         String k = dataBaseType.name() +"@"+databaseName;
         TomcatJDBCPool dbPool =  databasePoolMap.get(k);
         if (dbPool == null) JDBCLogger.print("【异常】找不到指定的数据库 '"+k+"'");
@@ -307,7 +322,7 @@ public class TomcatJDBC {
 
     /* 获取一个具体的数据库连接池操作对象*/
     public static JDBCSessionFacade getFacade(DataBaseType dataBaseType,String databaseName) {
-        TomcatJDBCPool pool = getDataBasePoolList(dataBaseType,databaseName);
+        TomcatJDBCPool pool = getDataBasePool(dataBaseType,databaseName);
         if (pool!=null){
             return checkDBConnection( new JDBCSessionFacade(pool) );
         }

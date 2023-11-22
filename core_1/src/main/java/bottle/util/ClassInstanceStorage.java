@@ -12,7 +12,6 @@ public class ClassInstanceStorage {
         if (object == null){
             object =  classType.newInstance();
             instanceMap.put(classType,object);
-//            System.out.println("ICE ClassInstanceStorage CREATE : " + classType + " -> " + object);
         }
         return (T) object;
     }

@@ -347,7 +347,7 @@ public class FileTool {
         FileChannel out = null;
         try {
             out = new FileOutputStream(file,isAppend).getChannel();
-           out.write(Charset.forName("UTF-8").encode(content));
+           out.write(StandardCharsets.UTF_8.encode(content));
            return true;
         } catch (IOException e) {
             e.printStackTrace();

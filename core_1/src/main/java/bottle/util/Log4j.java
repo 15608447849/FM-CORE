@@ -3,7 +3,7 @@ package bottle.util;
 import bottle.log.LogBean;
 import bottle.log.LogLevel;
 import bottle.log.PrintLogThread;
-import bottle.log.logimp.Log4j2Execute;
+
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -29,7 +29,7 @@ public class Log4j {
         String time = Log4j.sdf.format(new Date());
         String _message = String.format("%s\t%s\n",time,str);
         Log4j.writeLogToSpecFile("./logs/trace/", Log4j.sdfDict.format(new Date()), _message);
-        _trace(obj);
+        info(obj);
     }
     public static void _trace(Object obj){
         addMessageQueue(new LogBean(LogLevel.trace,obj));
@@ -48,6 +48,7 @@ public class Log4j {
         }
         addMessageQueue(new LogBean(LogLevel.info,sb.toString()));
     }
+
     public static void error(Throwable t){ addMessageQueue(new LogBean(LogLevel.error,"",t)); }
     public static void error(String message, Throwable t){ addMessageQueue(new LogBean(LogLevel.error,message,t)); }
     public static void warn(Object obj){
@@ -57,8 +58,20 @@ public class Log4j {
         addMessageQueue(new LogBean(LogLevel.fatal,obj));
     }
 
-    static {
-        PrintLogThread.setPrint(new Log4j2Execute());
+    public static void debugNcb(String... str){
+        if(str==null) return;
+        StringBuilder sb = new StringBuilder();
+        for (String s : str){
+            sb.append(s).append(" ");
+        }
+        addMessageQueue(new LogBean(LogLevel.debug,sb.toString()).setEnableCallback(false));
     }
-
+    public static void infoNcb(String... str){
+        if(str==null) return;
+        StringBuilder sb = new StringBuilder();
+        for (String s : str){
+            sb.append(s).append(" ");
+        }
+        addMessageQueue(new LogBean(LogLevel.info,sb.toString()).setEnableCallback(false));
+    }
 }

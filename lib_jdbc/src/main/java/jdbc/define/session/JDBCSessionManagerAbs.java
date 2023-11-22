@@ -12,23 +12,41 @@ import java.sql.SQLException;
  */
 public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection> {
 
-    protected DataBaseType dataBaseType;
-    protected String address;
-    protected String dataBaseName;
+    private DataBaseType dataBaseType;
+    private String host;
+    private int port;
+    private String username;
+    private String password;
+    private String dataBaseName;
 
-    public String getAddress() {
-        return address;
+   protected void setDataBaseInfo(DataBaseType dataBaseType,String host,int port,String userName,String password,String dataBaseName){
+       this.dataBaseType = dataBaseType;
+       this.host = host;
+       this.port = port;
+       this.username = userName;
+       this.password = password;
+       this.dataBaseName = dataBaseName;
+   }
+
+    public DataBaseType getDataBaseType(){
+        return dataBaseType;
     }
+
+
+    public String getHost() {
+        return host;
+    }
+
+    public int getPort() {return port;}
+
+    public String getUsername() {return username;}
+
+    public String getPassword() {return password;}
 
     public String getDataBaseName() {
         return dataBaseName;
     }
 
-
-    /* 获取所有数据库类型 */
-    public DataBaseType getDataBaseType(){
-        return dataBaseType;
-    }
 
     @Override
     public void beginTransaction() {
@@ -128,6 +146,6 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
 
     @Override
     public String toString() {
-        return "「 " + dataBaseType+" "+address+" "+dataBaseName+"」";
+        return "「" + dataBaseType+","+ host +":"+port+","+username+","+dataBaseName+"」";
     }
 }

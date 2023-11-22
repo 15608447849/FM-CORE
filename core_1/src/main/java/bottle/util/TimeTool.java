@@ -1,5 +1,7 @@
 package bottle.util;
 
+import bottle.tuples.Tuple2;
+
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -10,29 +12,70 @@ import java.util.regex.Pattern;
  * Created by user on 2017/11/27.
  */
 public class TimeTool {
-
     /**
-     * 一周间隔时间
+     * 一分钟间隔时间
      */
-    public static final long PERIOD_WEEK = 7 * 24 * 60 * 60 * 1000L;
+    public static final long PERIOD_MINUTE =  60 * 1000L;
+    /**
+     * 一小时间隔时间
+     */
+    public static final long PERIOD_HOUR = 60 * PERIOD_MINUTE;
 
     /**
      * 一天得间隔时间
      */
-    public static final long PERIOD_DAY = 24 * 60 * 60 * 1000L;
+    public static final long PERIOD_DAY = 24 * PERIOD_HOUR ;
 
     /**
-     * 一小时间隔时间
+     * 一周间隔时间
      */
-    public static final long PERIOD_HOUR = 60 * 60 * 1000L;
+    public static final long PERIOD_WEEK = 7 * PERIOD_DAY ;
 
-    /**
-     * 一个月
-     */
-    public static final long PERIOD_MONTH = 30 * 24 * 60 * 60 * 1000L;
+
+
+    private static final String TIME_MATCH_REGULAR_YYYYMMDD_HHMMSS = "(\\d{1,4})(-|\\/)(\\d{1,2})\\2(\\d{1,2})\\s+(\\d{1,2}):(\\d{1,2}):(\\d{1,2})";
+    private static final String TIME_MATCH_REGULAR_YYYYMMDD = "(\\d{1,4})(-|\\/)(\\d{1,2})\\2(\\d{1,2})";
+
+    private final static String[] stdTimePatterns = new String[]{
+            "yyyy-MM-dd HH:mm:ss.SSS",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd HH:mm",
+            "yyyy-MM-dd",
+            "yyyy/MM/dd HH:mm:ss.SSS",
+            "yyyy/MM/dd HH:mm:ss",
+            "yyyy/MM/dd HH:mm",
+            "yyyy/MM/dd",
+            "HH:mm:ss.SSS",
+            "HH:mm:ss",
+            "yyyyMMddHHmmssSSS",
+            "yyyyMMddHHmmss",
+            "yyyyMMdd",
+            "HHmmssSSS",
+            "HHmmss"
+    };
+
+
+    /* 检查日期格式 */
+    public static List<Tuple2<String,Date>> checkStrIsStdDate(String str) {
+        List<Tuple2<String,Date>> list = new ArrayList<>();
+
+        if (str != null && str.length()>0) {
+            for (String stdTimePattern : stdTimePatterns) {
+                try {
+                    SimpleDateFormat dateFormat = new SimpleDateFormat(stdTimePattern);
+                    dateFormat.setLenient(false);// 使用严格模式精准解析
+
+                    list.add(new Tuple2<>(stdTimePattern, dateFormat.parse(str)));
+                } catch (ParseException ignored) {
+                }
+            }
+        }
+        return  list;
+
+    }
 
     /**添加x天*/
-    private static Date addDay(Date date, int num) {
+    public static Date addDay(Date date, int num) {
         Calendar startDT = Calendar.getInstance();
         startDT.setTime(date);
         startDT.add(Calendar.DAY_OF_MONTH, num);
@@ -45,6 +88,20 @@ public class TimeTool {
         startDT.setTime(date);
         startDT.add(Calendar.DAY_OF_MONTH, -num);
         return startDT.getTime();
+    }
+
+    /**计算指定天数的时间字符串
+     * @param dayNumber -1=昨天,+1明天...
+     * @param formatStr 如yyyy-MM-dd
+     * */
+    public static String calSpecNumberDateToSpecFormat(int dayNumber,String formatStr){
+
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime( new Date());
+        calendar.add(Calendar.DATE, dayNumber);
+
+        SimpleDateFormat format= new SimpleDateFormat(formatStr);
+        return format.format(calendar.getTime());
     }
 
     /**string -> date ,  参数:"11:00:00"  如果小于当前时间,向后加一天*/
@@ -79,10 +136,35 @@ public class TimeTool {
        return null;
     }
 
+
+    public static String date2Str(Date date,String dateFormat){
+        try {
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+            return simpleDateFormat.format(date);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
     /**
-     * 例: DATE , 2017-11-11 9:50:00
+     * 返回: "2017-11-11 9:50:00" 字符串
      */
-    public static Date str_yMd_Hms_2Date(String timeString){
+    public static String date_yMd_Hms_2Str(Date date){
+        return date2Str(date,"yyyy-MM-dd HH:mm:ss");
+    }
+
+    /**
+     * 返回: "20171111095000" 字符串
+     */
+    public static String date_yMdHms_2Str(Date date){
+        return date2Str(date,"yyyyMMddHHmmss");
+    }
+
+    /**
+     * 2017-11-11 9:50:00 -> DATE
+     */
+    public static Date formatStr_yMdHms_2Date(String timeString){
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         try {
             return simpleDateFormat.parse(timeString);
@@ -92,39 +174,6 @@ public class TimeTool {
         return null;
     }
 
-    public static String date2Str(Date date,String dateFormat){
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
-        try {
-            return simpleDateFormat.format(date);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
-
-
-    /**
-     * 例: "2017-11-11 9:50:00"
-     */
-    public static String date_yMd_Hms_2Str(Date date){
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        try {
-            return simpleDateFormat.format(date);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    public static String date_yMdHms_2Str(Date date){
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        try {
-            return simpleDateFormat.format(date);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
 
     /**
      * 毫秒数-> x天x小时x分x秒
@@ -155,10 +204,7 @@ public class TimeTool {
         return sb.toString();
     }
 
-
-
-
-    // 连接时间格式化显示
+    /** 连接时间格式化显示 */
     public static String getConnectedDurationHumStr(long timestampDiff) {
         long second = timestampDiff / 1000L;
         long days = second / 86400;//转换天数
@@ -173,20 +219,9 @@ public class TimeTool {
             return hours + "小时" + minutes + "分钟" + second+"秒";
         }
     }
-    /**
-     * 获取当前年份
-     */
-    public static int getCurrentYear(){
-        try {
-            return Integer.parseInt(new SimpleDateFormat("yyyy").format(new Date()));
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
-        return 1900;
-    }
 
     /** 获取指定年份 */
-    public static int getCurrentYear(Date date){
+    public static int getSpecYear(Date date){
         try {
             return Integer.parseInt(new SimpleDateFormat("yyyy").format(date));
         } catch (NumberFormatException e) {
@@ -196,26 +231,30 @@ public class TimeTool {
     }
 
     /**
+     * 获取当前年份
+     */
+    public static int getCurrentYear(){
+        return getSpecYear(new Date());
+    }
+
+
+
+    /**
      * 获取当前时间
      */
     public static String getCurrentTime(){
-        try {
-            return new SimpleDateFormat("HH:mm:ss").format(new Date());
-        } catch (NumberFormatException e) {
-            e.printStackTrace();
-        }
-        return "00:00:00";
+        return date2Str(new Date(),"HH:mm:ss");
     }
 
     /**
-     * 判断当前时间是否在[startDate, endDate]区间，注意时间格式要一致
+     * 判断指定时间是否在[startDate, endDate]区间，注意时间格式要一致
      *
      * @param nowDate 当前时间
      * @param startDate 开始时间
      * @param endDate 结束时间
-     * @return
+     * @return true在指定区间
      */
-    public static boolean isEffectiveDate(Date nowDate, Date startDate, Date endDate) {
+    public static boolean dateWithinRange(Date nowDate, Date startDate, Date endDate) {
         if (nowDate.getTime() == startDate.getTime() || nowDate.getTime() == endDate.getTime()) return true;
         Calendar date = Calendar.getInstance();
         date.setTime(nowDate);
@@ -227,12 +266,7 @@ public class TimeTool {
     }
 
     /**
-     * 格式为"HH:mm:ss"
-     * 判断当前时间是否在[startDate, endDate]区间，注意时间格式要一致
-     *
-     * @param startTime
-     * @param endTime
-     * @return
+     * 格式为"HH:mm:ss"的时间是否在指定[startDate, endDate]区间
      */
     public static boolean isEffectiveTime(String startTime, String endTime){
         try{
@@ -242,7 +276,7 @@ public class TimeTool {
             Date nowDate = sdf.parse(nowTime);
             Date startDate = sdf.parse(startTime);
             Date endDate = sdf.parse(endTime);
-            return isEffectiveDate(nowDate, startDate, endDate);
+            return dateWithinRange(nowDate, startDate, endDate);
 
         }catch(Exception e){
             e.printStackTrace();
@@ -250,59 +284,14 @@ public class TimeTool {
         return false;
     }
 
-    private final static String[] parsePatterns = new String[]{
-            "yyyy-MM-dd HH:mm:ss",
-            "yyyy-MM-dd HH:mm",
-            "yyyy-MM-dd",
 
-            "yyyy/MM/dd HH:mm:ss",
-            "yyyy/MM/dd HH:mm",
-            "yyyy/MM/dd",
 
-            "HH:mm:ss"
-    };
 
-    private final static SimpleDateFormat[] parsePatterns_dateFormat = new SimpleDateFormat[parsePatterns.length];
 
-    static {
-        for (int i = 0; i< parsePatterns.length;i++){
-            parsePatterns_dateFormat[i] =  new SimpleDateFormat(parsePatterns[i]);
-        }
-    }
 
-    /* 检查日期格式 */
-    public static Object[] parseDate(String str) {
-        if (str == null) {
-            return null;
-        }
 
-        for (int i = 0;i<parsePatterns_dateFormat.length;i++){
-            try {
-                SimpleDateFormat dateFormat =  parsePatterns_dateFormat[i];
-                dateFormat.setLenient(false);
-                return new Object[]{ parsePatterns[i] , dateFormat.parse(str)};
-            } catch (ParseException ignored) { }
-        }
-        return  null;
 
-    }
-
-    public static Date parseDateSpecFormat(String str,String format) {
-        if (str == null) {
-            return null;
-        }
-        try {
-            SimpleDateFormat dateFormat = new SimpleDateFormat(format);
-            dateFormat.setLenient(false);
-            return dateFormat.parse(str);
-        } catch (ParseException ignored) { }
-
-        return  null;
-    }
-
-    private static final String TIME_MATCH_REGULAR_YYYYMMDD_HHMMSS = "(\\d{1,4})(-|\\/)(\\d{1,2})\\2(\\d{1,2})\\s+(\\d{1,2}):(\\d{1,2}):(\\d{1,2})";
-    private static final String TIME_MATCH_REGULAR_YYYYMMDD = "(\\d{1,4})(-|\\/)(\\d{1,2})\\2(\\d{1,2})";
-
+    /** 正则匹配时间内容 */
     public static String[] regularMatchTimeStr(String text){
         List<String> list = new ArrayList<>();
 
@@ -321,7 +310,6 @@ public class TimeTool {
             list.add(tstr);
             text = text.replaceFirst(tstr,"");
         }
-
 
         String[] arr = new String[list.size()];
         return list.toArray(arr);

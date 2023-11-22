@@ -19,9 +19,9 @@ public class TimerBean {
     private Date date;
     private TimerTask task;
     private Timer timer ;
-    public TimerBean(String dateStr,Action action) throws IllegalArgumentException {
+    public TimerBean(String dateStr,Action<TimerBean> action) throws IllegalArgumentException {
 
-        Date date = TimeTool.str_yMd_Hms_2Date(dateStr);
+        Date date = TimeTool.formatStr_yMdHms_2Date(dateStr);
         if (date==null){
             date = TimeTool.str_Hms_2Date(dateStr);
             if (date!=null){
