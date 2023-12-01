@@ -35,9 +35,9 @@ module inf{
       interface Interfaces{
           /** 前后台交互 */
           string accessService(IRequest request);
-          /** 消息推送-服务端 / 客户端上线  */
+          /** 消息推送: 客户端主动上线  */
           void online(Ice::Identity identity);
-          /** 消息推送-服务端 / 后端服务调用 - 向指定客户端发送消息 */
+          /** 消息推送: 服务端向指定客户端发送消息 */
           void sendMessageToClient(string identityName,string message);
       };
 

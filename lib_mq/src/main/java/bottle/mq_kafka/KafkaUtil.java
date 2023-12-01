@@ -29,8 +29,6 @@ public class KafkaUtil {
 
     private static KProductionWarp defaulf_product;
 
-
-
     static {
         ApplicationPropertiesBase.initStaticFields(KafkaUtil.class);
         try {
@@ -50,7 +48,7 @@ public class KafkaUtil {
                defaulf_product = createKProduction(serverAddr,true);
             }
         } catch (Exception e) {
-            MQLog.error("kafka 消息发送工具无法初始化配置文件 kafkamq.properties",e);
+            MQLog.error("kafka工具类无法初始化配置文件 kafkamq.properties",e);
         }
     }
 
@@ -69,7 +67,7 @@ public class KafkaUtil {
     /* 指定生产者进行发送 */
     public static void asyncSendKDKMessageSpecTopic(KProductionWarp product,String topicName,String k_msgType,String v_jsonStr,KFKProductionMessageCallback callback){
         if (product == null){
-            MQLog.info("KAFKA PRODUCT IS NULL ,SEND FAIL : "+ topicName+" -> "+ k_msgType +" : "+ v_jsonStr );
+            MQLog.info("发送失败,kafka生产者不存在: topicName="+ topicName+" ,k_msgType= "+ k_msgType);
             return;
         }
         if (product.isClose) return;
@@ -82,17 +80,23 @@ public class KafkaUtil {
 
         String topicName = topicMap.get(busTopicFlag);
         if (topicName == null) {
-            MQLog.info("尝试匹配业务主题( "+ busTopicFlag +" )失败");
+            MQLog.info("尝试匹配业务主题失败: busTopicFlag="+busTopicFlag+" ,k_msgType="+k_msgType);
             return false;
         }
         if (v_jsonStr == null){
-            MQLog.info("请不要尝试发送空内容消息");
+            //MQLog.info("请不要尝试发送空内容消息");
             return false;
         }
         asyncSendKDKMessageSpecTopic(defaulf_product,topicName,k_msgType,v_jsonStr,callback);
         return true;
     }
+    public static boolean asyncSendKFKMessage(String busTopicFlag,String k_msgType,String v_jsonStr){
+        return asyncSendKFKMessage(busTopicFlag,k_msgType,v_jsonStr,null);
+    }
 
+    public static boolean asyncSendKFKMessage(String busTopicFlag, String v_jsonStr){
+        return asyncSendKFKMessage(busTopicFlag,"default",v_jsonStr);
+    }
 
 
     //加入消费者
@@ -101,7 +105,7 @@ public class KafkaUtil {
 
         try {
             if (callback == null || busTopics == null) {
-                MQLog.info("消费者处理对象不存在或未设置可关联的业务主题");
+                MQLog.info("kafka消费者处理对象不存在或未设置可关联的业务主题");
                 return false;
             }
 
@@ -137,7 +141,7 @@ public class KafkaUtil {
             productionList.clear();
             consumeList.clear();
             isEnable = false;
-             MQLog.info("KAFKA PRODUCT AND CONSUME ALL CLOSE"  );
+//             MQLog.info("KAFKA PRODUCT AND CONSUME ALL CLOSE"  );
         }
 
     }

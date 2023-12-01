@@ -178,7 +178,6 @@ public class Result{
    public void clear() {
       code = CODE.FAIL;
       message = null;
-      message = null;
       text = null;
       data = null;
       error = null;

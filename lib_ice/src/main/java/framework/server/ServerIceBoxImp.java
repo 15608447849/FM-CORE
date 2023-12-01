@@ -87,7 +87,7 @@ public final class ServerIceBoxImp implements Service {
         initServer(communicator,packagePath);
         //启动web文件服务
         WebServerProxy.startWebServer(httpPort,httpFilePath,httpFileTime);
-        //启动node服务
+        //启动ice box node服务
         startService(communicator,isPushServer,packagePath);
         //激活适配器
         _adapter.activate();
