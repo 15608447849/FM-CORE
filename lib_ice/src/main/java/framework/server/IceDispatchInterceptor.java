@@ -16,7 +16,7 @@ public class IceDispatchInterceptor extends DispatchInterceptor {
     private static final IceDispatchInterceptor instance = new IceDispatchInterceptor();
 
     /**用来存放我们需要拦截的Ice服务对象，Key为服务ID，value为对应的Servant*/
-    private Map<Identity, Object> map ;
+    private final Map<Identity, Object> map ;
 
     private IceDispatchInterceptor() {
         map = new ConcurrentHashMap<>();
@@ -45,31 +45,23 @@ public class IceDispatchInterceptor extends DispatchInterceptor {
         systemRunning = true;
     }
 
-
-
     /**
      * 移除服务
      */
     @Override
     public DispatchStatus dispatch(Request request) {
         if (!systemRunning)  return DispatchStatus.DispatchUserException;
-//            long time = System.currentTimeMillis();
-//            Current current = request.getCurrent();
             Identity identity = request.getCurrent().id;
             Object object = map.get(identity);
-//        communicator().getLogger()
-//                .print("\n\t\t- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - \t\t");
             DispatchStatus status = object.ice_dispatch(request);
-//            if (current.operation .equals("accessService")) communicator().getLogger()
-//                    .print("调用状态: "+ statusString(status) + " , 调用耗时: " + (System.currentTimeMillis() - time) +" ms\n");
             return status;
     }
 
     private String statusString(DispatchStatus status){
         if (status == DispatchStatus.DispatchOK) return "成功";
         if (status == DispatchStatus.DispatchAsync) return "异步派发";
-         if (status == DispatchStatus.DispatchUserException) return "错误";
-         return "未知";
+        if (status == DispatchStatus.DispatchUserException) return "错误";
+        return "未知";
     }
 }
 

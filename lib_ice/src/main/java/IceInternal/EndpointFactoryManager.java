@@ -100,8 +100,8 @@ public final class EndpointFactoryManager
             buf.position(0);
             short type = bs.readShort();
             EndpointI ue = new IceInternal.OpaqueEndpointI(type, bs);
-            System.err.println("Normal: " + e);
-            System.err.println("Opaque: " + ue);
+            Log4j.info("Normal: " + e);
+            Log4j.info("Opaque: " + ue);
             return e;
             */
         }

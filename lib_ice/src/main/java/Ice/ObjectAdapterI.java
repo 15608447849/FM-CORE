@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.ArrayList;
 
 import IceInternal.IncomingConnectionFactory;
+import bottle.util.Log4j;
 
 public final class ObjectAdapterI implements ObjectAdapter
 {
@@ -99,7 +100,7 @@ public final class ObjectAdapterI implements ObjectAdapter
 
         if(printAdapterReady)
         {
-            System.out.println(_name + " ready");
+            Log4j.info(_name + " ready");
         }
 
         synchronized(this)

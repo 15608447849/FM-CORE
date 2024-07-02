@@ -59,7 +59,9 @@ public class ApiServerImps extends IMServerImps{
     /* 记录参数进入日志 */
     private static String writeInputParameters(StringBuilder sb) {
         String _message = sb.toString();
-        Log4j.writeLogToSpecFile("./logs/ice/"+Log4j.sdfDict.format(new Date()),Log4j.sdfFile.format(new Date()),_message+"\n");
+        Log4j.writeLogToSpecFile("./logs/ice/"+Log4j.sdfDict.format(new Date()),
+                Log4j.sdfFile.format(new Date()),
+                _message+"\n");
         return _message;
     }
 
@@ -162,7 +164,6 @@ public class ApiServerImps extends IMServerImps{
         long executeTime = System.currentTimeMillis();
         try {
             //创建context
-
             context = IceSessionContext.create(__current,packagePath,request);
 
             api = context.getApi();
@@ -179,7 +180,6 @@ public class ApiServerImps extends IMServerImps{
             }else{
                 //具体业务实现调用 返回值不限制
                 result = context.call();
-//                TimeTool.formatDuring(System.currentTimeMillis() - executeTime);
             }
 
         } catch (Exception e) {
@@ -251,7 +251,7 @@ public class ApiServerImps extends IMServerImps{
                 console.append("\n").append(executeErrorStr);
             }
             // 控制台输出
-            if (console.length()>0) System.out.println(console);
+            if (console.length()>0) Log4j.info(console);
         }
     }
 

@@ -9,6 +9,8 @@
 
 package IceUtilInternal;
 
+import bottle.util.Log4j;
+
 public final class Assert
 {
     //
@@ -30,15 +32,15 @@ public final class Assert
                 //
                 // Skip the first frame, which represents this method.
                 //
-                System.err.println("Assertion failure:");
+                Log4j.info("Assertion failure:");
                 for(StackTraceElement e : trace)
                 {
-                    System.err.println("\tat " + e);
+                    Log4j.info("\tat " + e);
                 }
             }
             else
             {
-                System.err.println("Assertion failure (no stack trace information)");
+                Log4j.info("Assertion failure (no stack trace information)");
             }
         }
     }

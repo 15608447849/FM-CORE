@@ -23,7 +23,6 @@ public class ResourcesWatch {
     public static File getOutResourcesDirectory(Class<?> clazz) {
         try {
             File file = new File(URLDecoder.decode(clazz.getProtectionDomain().getCodeSource().getLocation().getFile(),"UTF-8"));
-//            Log4j.info("监听 runtime directory = "+ file);
             String resourceName = "resources";
             if (file.getPath().contains("build")&&file.getPath().contains("classes")&&file.getPath().contains("java")){
                 resourceName += "/"+file.getName();
@@ -31,7 +30,6 @@ public class ResourcesWatch {
             }
             if (file.getName().endsWith(".jar")) file = file.getParentFile();
             File dirc = new File(file,resourceName);
-            //Log4j.info("监听 resources directory = "+ dirc);
             if (dirc.exists()){
                 return dirc;
             }
@@ -45,12 +43,10 @@ public class ResourcesWatch {
         try {
 
             File resources = getOutResourcesDirectory(clazz);
-//            Log4j.info("尝试监听 "+clazz+" resources="+resources);
             if (resources == null) return false;
 
             String resourcesPath = resources.getCanonicalPath();
 
-            //Log4j.info(" 监听 threadMap.containsKey(resourcesPath) = "+resourcesPath +"  "+ (threadMap.containsKey(resourcesPath)));
             if (threadMap.containsKey(resourcesPath)) return true;
 
             Log4j.info("新增监听 Properties配置文件目录 : "+ resourcesPath);
@@ -70,7 +66,6 @@ public class ResourcesWatch {
                             if (event.kind() == StandardWatchEventKinds.OVERFLOW) continue;
                             Path path = (Path) event.context();
                             if (path == null) continue;
-//                            Log4j.info("监听 存在变化: "+ path);
                             String fileName = path.toFile().getName();
                             if (targetMap.containsKey(fileName) && event.count()==1){
                                 List<Tuple3<Class<?>,String,ApplicationPropertiesBase.ApplicationPropertiesCallback>> list = targetMap.get(fileName);

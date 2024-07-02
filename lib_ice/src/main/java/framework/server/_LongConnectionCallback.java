@@ -51,12 +51,12 @@ class _LongConnectionCallback implements ConnectionCallback {
     }
     @Override
     public void heartbeat(Connection con) {
-//        System.out.println(FLAG+ "[heartbeat]\t"  + clientType+"," + identityName + "," +  con.toString().replace("\n","<->")
+//        Log4j.info(FLAG+ "[heartbeat]\t"  + clientType+"," + identityName + "," +  con.toString().replace("\n","<->")
 //                + " ,"+ TimeTool.getConnectedDurationHumStr(System.currentTimeMillis() - connectStartTime));
     }
     @Override
     public void closed(Connection con) {
-        System.out.println(FLAG+ "[closed]\t"  + clientType+" , " + identityName + " , " +  con.toString().replace("\n","<->")
+        Log4j.info(FLAG+ "[closed]\t"  + clientType+" , " + identityName + " , " +  con.toString().replace("\n","<->")
                 + " ,"+ TimeTool.getConnectedDurationHumStr(System.currentTimeMillis() - connectStartTime));
         closeConnected();
     }
@@ -70,7 +70,7 @@ class _LongConnectionCallback implements ConnectionCallback {
 
     boolean sendMessage(String _message){
         try {
-            if (isClosed) System.out.println(FLAG+" 连接已关闭,发送失败, "+ clientType+"/"+ identityName + "\t" + _message);
+            if (isClosed) Log4j.info(FLAG+" 连接已关闭,发送失败, "+ clientType+"/"+ identityName + "\t" + _message);
 
             if (!isClosed){
                 clientPrx.ice_ping();
@@ -80,7 +80,7 @@ class _LongConnectionCallback implements ConnectionCallback {
         } catch (Exception e) {
             closeConnected();
             String info = FLAG + "发送失败," + clientType+"/"+ identityName + "\t" + _message;
-            System.out.println(info);
+            Log4j.info(info);
             if (e instanceof RequestFailedException){
                 Log4j.info(info);
             }else{

@@ -24,12 +24,12 @@ public final class JDBCLogger {
         String _message = String.format("【%s】\t%s\n",time,message);
         String dict = "./logs/jdbc/"+ PrintLogThread.sdfDict.format(new Date());
         String file = PrintLogThread.sdfFile.format(new Date());
-        PrintLogThread.addMessageQueue(new LogBean(dict,file,_message));//写入错误文件
+        PrintLogThread.addMessageQueue(new LogBean(dict,file,_message).setEnableCallback(false));//写入错误文件
     }
 
     public static void error(String desc,Throwable e){
         desc = desc == null ? "":desc ;
         writeJDBCFile("desc = "+desc+",\n"+StringUtil.printExceptInfo(e));
-        PrintLogThread.addMessageQueue(new LogBean(LogLevel.error,desc,e));//写入log日志
+        PrintLogThread.addMessageQueue(new LogBean(LogLevel.error,desc,e).setEnableCallback(false));//写入log日志
     }
 }

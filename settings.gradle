@@ -1,8 +1,11 @@
 rootProject.name = 'FM-CORE'
 
 
+include 'core_0'
 include 'core_1'
 include 'core_2'
+
+
 
 include 'lib_cache'
 include 'lib_es'

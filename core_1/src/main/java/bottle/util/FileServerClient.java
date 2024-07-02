@@ -222,11 +222,19 @@ public class FileServerClient {
     }
 
     public static void main(String[] args) {
-        String url = "http://localhost:8080/upload";
-        try(FileInputStream fos = new FileInputStream(new File("C:\\Users\\Administrator\\Pictures\\3.jpg"))){
-            FileServerClient.uploadImage(url,"李世平","1.jpg",false,false,false,fos);
-        }catch (Exception e){
-            e.printStackTrace();
+//        https://www.onekdrug.com:9999/media/card/1679630358940000011/1.pdf
+
+//        String url = "http://localhost:8080/upload";
+//        try(FileInputStream fos = new FileInputStream(new File("C:\\Users\\Administrator\\Pictures\\3.jpg"))){
+//            FileServerClient.uploadImage(url,"李世平","1.jpg",false,false,false,fos);
+//        }catch (Exception e){
+//            e.printStackTrace();
+//        }
+
+        String url = "https://www.onekdrug.com:9999/ergodic";
+        List<String> list = showDirFilesPath(url, "media/card/1679630358940000011", true);
+        for (String s : list) {
+            System.out.println(s);
         }
     }
 

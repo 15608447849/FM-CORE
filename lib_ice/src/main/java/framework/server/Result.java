@@ -9,9 +9,7 @@ import java.lang.reflect.Type;
 import java.util.HashMap;
 public class Result{
 
-   private Result(){
-
-   }
+   private Result(){}
 
    static Result create() {
       try {

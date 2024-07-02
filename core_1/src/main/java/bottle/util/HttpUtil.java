@@ -410,7 +410,7 @@ public class HttpUtil {
         String result = null;
         BufferedReader reader = null;
         try {
-            reader =  new BufferedReader(new InputStreamReader(inputStream,"utf-8"));
+            reader =  new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             StringBuffer resultBuffer = new StringBuffer();
             String tempLine;
             while ((tempLine = reader.readLine()) != null) {
@@ -617,7 +617,6 @@ public class HttpUtil {
 
         con.setRequestProperty("Charset", "UTF-8");
         con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
-        con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
 
         if (request.isUpdate){
             con.setDoOutput(true);
@@ -738,7 +737,9 @@ public class HttpUtil {
             con.setUseCaches(false);
             con.setRequestProperty("Charset", "UTF-8");
             con.setRequestProperty("Content-Type", "application/json");
-
+            con.setRequestProperty("Connection", "keep-alive");  //设置连接的状态
+            con.setReadTimeout(3 * 60 * 1000);
+            con.setConnectTimeout(3 * 60 * 1000);
 
             if (map!=null){
                 for (Map.Entry<String, String> entry : map.entrySet()) {
@@ -752,6 +753,7 @@ public class HttpUtil {
                 osw.flush();
                 osw.close();
             }
+
             BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream(), StandardCharsets.UTF_8));
             String line;
             StringBuilder sb = new StringBuilder();
@@ -772,10 +774,5 @@ public class HttpUtil {
       return contentToHttpBody(url,type,null,json);
     }
 
-
-    public static void main(String[] args) {
-        String s = HttpUtil.formText("https://api.ems.com.cn","POST",null);
-        System.out.println(s);
-    }
 
 }

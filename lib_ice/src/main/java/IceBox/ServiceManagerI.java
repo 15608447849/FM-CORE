@@ -422,7 +422,7 @@ public class ServiceManagerI extends _ServiceManagerDisp
             String bundleName = properties.getProperty("IceBox.PrintServicesReady");
             if(bundleName.length() > 0)
             {
-                System.out.println(bundleName + " ready");
+                Log4j.info(bundleName + " ready");
             }
 
             //

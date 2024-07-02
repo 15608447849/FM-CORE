@@ -8,6 +8,8 @@
 // **********************************************************************
 
 package IceBox;
+import bottle.util.Log4j;
+
 import java.lang.management.ManagementFactory;
 public final class Server extends Ice.Application
 {
@@ -15,22 +17,22 @@ public final class Server extends Ice.Application
     public static void
     main(String[] args)
     {
-        System.out.println("Ice 节点服务启动 , 进程ID: "+ ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
+        Log4j.info("Ice 节点服务启动 , 进程ID: "+ ManagementFactory.getRuntimeMXBean().getName().split("@")[0]);
 //        args = new String[]{"--Ice.Config=C:/IDEAWORK/FM-CORE/lib_ice/src/main/node-db/servers/imServer-box-1/config/config"};
         Ice.InitializationData initData = new Ice.InitializationData();
         initData.properties = Ice.Util.createProperties();
         initData.properties.setProperty("Ice.Admin.DelayCreation", "1");
         Server server = new Server();
         int status = server.main("IceBox.Server", args, initData);
-        System.out.println("Ice 节点服务结束 , 进程退出状态码: "+ status);
+        Log4j.info("Ice 节点服务结束 , 进程退出状态码: "+ status);
         System.exit(status);
     }
 
     private static void
     usage()
     {
-        System.err.println("Usage: IceBox.Server [options] --Ice.Config=<file>\n");
-        System.err.println(
+        Log4j.info("Usage: IceBox.Server [options] --Ice.Config=<file>\n");
+        Log4j.info(
                 "Options:\n" +
                         "-h, --help           Show this message.\n"
         );
@@ -71,7 +73,7 @@ public final class Server extends Ice.Application
             }
             else
             {
-                System.err.println("Server: unknown option `" + arg + "'");
+                Log4j.info("Server: unknown option `" + arg + "'");
                 usage();
                 return 1;
             }

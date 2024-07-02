@@ -2,19 +2,10 @@
 dependencies {
 
     implementation project(':core_1')
-    
     // 连接池
     implementation 'mysql:mysql-connector-java:8.0.30'
-//    implementation 'mysql:mysql-connector-java:8.0.20'
-    // com.mysql.cj.jdbc.Driver
+    // 驱动
     implementation 'org.apache.tomcat:tomcat-jdbc:9.0.70'
-//    implementation 'org.apache.tomcat:tomcat-jdbc:9.0.35'
-    // ru.yandex.clickhouse.ClickHouseDriver
-//    implementation 'ru.yandex.clickhouse:clickhouse-jdbc:0.2.4'
-    
-    // com.clickhouse.jdbc.ClickHouseDriver
     implementation 'com.clickhouse:clickhouse-jdbc:0.3.2-patch11:all'
-
-//    implementation 'com.clickhouse:clickhouse-http-client:0.3.2-patch11'
 
 }

@@ -52,6 +52,7 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
     public void beginTransaction() {
         Connection session = getSession();
         try {
+            if (!session.getAutoCommit()) throw new JDBCException("session auto commit is false,unable open transaction");
             session.setAutoCommit(false);
         } catch (SQLException e) {
             throw new JDBCException(e);
@@ -100,8 +101,6 @@ public abstract class JDBCSessionManagerAbs extends SessionManagerAbs<Connection
                 setSession(session);
 //                JDBCLogger.print(Thread.currentThread().getName() +" < 连接池获取 > "+session);
             }
-
-
             return session;
         } catch (SQLException e) {
             closeSession();

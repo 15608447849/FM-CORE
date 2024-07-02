@@ -9,6 +9,8 @@
 
 package IceInternal;
 
+import bottle.util.Log4j;
+
 public class ProcessI extends Ice._ProcessDisp
 {
     public ProcessI(Ice.Communicator communicator)
@@ -31,12 +33,12 @@ public class ProcessI extends Ice._ProcessDisp
         {
             case 1:
             {
-                System.out.println(message);
+                Log4j.info(message);
                 break;
             }
             case 2:
             {
-                System.err.println(message);
+                Log4j.info(message);
                 break;
             }
         }

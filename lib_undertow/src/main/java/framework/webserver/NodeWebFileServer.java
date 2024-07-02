@@ -29,7 +29,7 @@ public class NodeWebFileServer {
 
     private static String tempFileDirPath = "./node_temp";
 
-    private static long tempFilePeriodTime = 60 * 60 * 1000L;
+    private static long tempFilePeriodTime = 10 * 60 * 1000L;
 
     private static String domain = "file://"+tempFileDirPath;
 
@@ -39,6 +39,12 @@ public class NodeWebFileServer {
     /* 被代理的静态方法 */
     public static void startWebServer(int httpPort, String httpFilePath, long httpFileTime){
         try {
+            Log4j.info("startWebServer httpPort=" +httpPort
+                    +" httpFilePath=" +httpFilePath
+                    +" httpFileTime="+httpFileTime
+                    +" tempFilePeriodTime="+tempFilePeriodTime
+            );
+
             if (httpFileTime > 0 ){
                 tempFilePeriodTime = httpFileTime*1000L;
             }
@@ -67,6 +73,7 @@ public class NodeWebFileServer {
             timer.schedule(new TimerTask() {
                 @Override
                 public void run() {
+                    Log4j.info("deleteFiles start tempFilePeriodTime=" +tempFilePeriodTime);
                     deleteFiles(tempFileDirPath,tempFilePeriodTime);
                 }
             }, tempFilePeriodTime, tempFilePeriodTime);
@@ -88,7 +95,9 @@ public class NodeWebFileServer {
 
             Undertow.Builder builder = Undertow.builder();
             builder.addHttpListener(port, "0.0.0.0", httpHandler);
-            domain = String.format("http://%s:%d", localHostPublicNetIpAddr(), port);
+            String netip = localHostPublicNetIpAddr();
+            if (netip == null) throw new RuntimeException("无法获取到外网真实IP地址");
+            domain = String.format("http://%s:%d", netip, port);
             webObject = builder.build();
             webObject.start();
             Log4j.info("WEB " + "0.0.0.0:" + port + " FILE: " + dir.toURI() + " DOMAIN: " + domain);

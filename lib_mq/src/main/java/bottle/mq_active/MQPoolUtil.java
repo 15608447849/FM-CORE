@@ -5,11 +5,14 @@ import bottle.properties.abs.ApplicationPropertiesBase;
 import bottle.properties.annotations.PropertiesFilePath;
 import bottle.properties.annotations.PropertiesName;
 
+import bottle.threadpool.IOThreadPool;
 import bottle.util.StringUtil;
+import bottle.util.ThreadTool;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.broker.jmx.BrokerViewMBean;
 import org.apache.activemq.broker.jmx.QueueViewMBean;
+import org.apache.activemq.util.ThreadPoolUtils;
 
 
 import javax.jms.*;
@@ -42,6 +45,8 @@ public class MQPoolUtil {
     @PropertiesName("password")
     public static String password;
 
+    private static final IOThreadPool threadPool = new IOThreadPool();
+
     private static javax.jms.Connection connection;
 
     static {
@@ -54,7 +59,6 @@ public class MQPoolUtil {
         connectionFactory.setTrustAllPackages(true);
         connectionFactory.setUseAsyncSend(true);
 
-
         org.apache.activemq.pool.PooledConnectionFactory poolFactory = new org.apache.activemq.pool.PooledConnectionFactory(connectionFactory);
         poolFactory.setMaxConnections(maxConnection);
         poolFactory.setMaximumActiveSessionPerConnection(maxSessionConnection);
@@ -62,50 +66,48 @@ public class MQPoolUtil {
             connection = poolFactory.createConnection();
             connection.start();
         } catch (Exception e) {
-            MQLog.error("MQ启动失败",e);
+            MQLog.error("[activeMQ] create error",e);
         }
     }
 
     /* 发送消息到消息队列 */
-    public static boolean sendMessage(String msgType, String message){
-
-        return sendMessageDelay(msgType,message,0);
+    public static void sendMessage(String msgType, String message){
+        sendMessageDelay(msgType,message,0);
     }
 
-    public static boolean sendMessageDelay(String msgType, String message,long timeSec){
-        Session session = null;
-        MessageProducer messageProducer = null;
-        try{
-            MQLog.activemq_write("producer",String.format("[发送] %s\t%s",msgType, message));
-            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            Destination destination = session.createQueue(msgType);
-            messageProducer = session.createProducer(destination);
-            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);//持久化
-            TextMessage textMessage = session.createTextMessage(message);
-            if (timeSec>0) textMessage.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY,timeSec * 1000);
-            messageProducer.send(textMessage);
+    public static void sendMessageDelay(String msgType, String message,long timeSec){
+        threadPool.post(()->{
 
-            MQLog.activemq_write("producer",
-                    String.format("[完成] %s\t%s\n",msgType, message));
-            return true;
-        }catch (Exception e){
-            MQLog.activemq_write("producer",
-                    String.format("[失败] %s\t%s\n", msgType, message));
-            MQLog.error("[activeMQ] 发送消息失败,类型 = "+msgType,e);
-        }finally {
-            try {
-                if (messageProducer != null) {
-                    messageProducer.close();
-                }
-            } catch (JMSException ignored) { }
-            try {
-                if (session != null) {
-                    session.close();
-                }
-            } catch (JMSException ignored) { }
+            Session session = null;
+            MessageProducer messageProducer = null;
+            try{
+                MQLog.activemq_write("producer",String.format("[发送] %s\t%s",msgType, message));
+                session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                Destination destination = session.createQueue(msgType);
+                messageProducer = session.createProducer(destination);
+                messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);//持久化
+                TextMessage textMessage = session.createTextMessage(message);
+                if (timeSec>0) textMessage.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY,timeSec * 1000);
+                messageProducer.send(textMessage);
+                MQLog.activemq_write("producer",String.format("[完成] %s\t%s\n",msgType, message));
+            }catch (Exception e){
+                MQLog.activemq_write("producer",String.format("[失败] %s\t%s\n", msgType, message));
+                MQLog.error("[activeMQ] 发送消息失败,类型 = "+msgType,e);
+            }finally {
+                try {
+                    if (messageProducer != null) {
+                        messageProducer.close();
+                    }
+                } catch (JMSException ignored) { }
+                try {
+                    if (session != null) {
+                        session.close();
+                    }
+                } catch (JMSException ignored) { }
 
-        }
-        return false;
+            }
+
+        });
     }
 
 
@@ -123,7 +125,9 @@ public class MQPoolUtil {
                 TextMessage textMessage = (TextMessage) message;
                 String messageStr = textMessage.getText();
                 MQLog.activemq_write("consumer/"+msgType,messageStr);
-                _onMessage(messageStr);
+                threadPool.post(()->{
+                    _onMessage(messageStr);
+                });
             }catch (Exception e){
                 MQLog.error("[activeMQ] 接受消息异常",e);
             }
@@ -135,16 +139,20 @@ public class MQPoolUtil {
 
     /* 添加监听者 */
     public static void addConsumer(String msgType,MessageListener listener){
-        try {
-            if (connection == null) return;
-            Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            Queue destination = session.createQueue(msgType);
-            MessageConsumer consumer = session.createConsumer(destination);
-            consumer.setMessageListener(listener);
-            MQLog.info("MQ消费者自动注册完成, type: "+ msgType+ " instance: "+listener);
-        } catch (JMSException e) {
-            MQLog.error("无法添加MQ消费者,类型="+msgType,e);
-        }
+
+            threadPool.post(()->{
+                try {
+                    ThreadTool.threadSleep(30*1000);
+                    if (connection == null) return;
+                    Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+                    Queue destination = session.createQueue(msgType);
+                    MessageConsumer consumer = session.createConsumer(destination);
+                    consumer.setMessageListener(listener);
+                    MQLog.info("[activeMQ Consumer] 自动注册完成, type: 【"+ msgType+ "】 instance: "+listener);
+                } catch (JMSException e) {
+                    MQLog.error("[activeMQ Consumer] 自动注册失败, type="+msgType,e);
+                }
+            });
     }
 
     public static long getQueueSize(String msgType){
@@ -162,7 +170,7 @@ public class MQPoolUtil {
                 }
             }
         } catch (Exception e) {
-            MQLog.error("获取MQ执行类型队列大小失败,类型="+msgType,e);
+            MQLog.error("[activeMQ] 获取队列大小失败, type="+msgType,e);
         }
         return 0;
     }
@@ -174,7 +182,7 @@ public class MQPoolUtil {
                 connection.close();
             }
         } catch (JMSException e) {
-            MQLog.error("",e);
+            MQLog.error("[activeMQ] destroy error",e);
         }
     }
 

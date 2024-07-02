@@ -1,4 +1,5 @@
 import bottle.util.GoogleGsonUtil;
+import bottle.util.Log4j;
 import framework.server.IReqArray;
 import framework.server.IReqJson;
 import framework.server.IReqKey;
@@ -64,7 +65,7 @@ public class Test {
         list.add(map);
 
 //        String json  = new Test().FuncTs(list);
-//        System.out.println(json);
+//        Log4j.info(json);
 
 //        HashMap<Object, Object> mm = new HashMap<>();
 //        mm.put("111122,,s",map);
@@ -72,16 +73,16 @@ public class Test {
 //        mm.put(map,list);
 //        String json2 = GoogleGsonUtil.javaBeanToJson(mm);
 //
-//        System.out.println(json2);
+//        Log4j.info(json2);
 //        Map<Object,Object> m2 = GoogleGsonUtil.string2Map(json2);
 //
-//        System.out.println(m2.get(map));
+//        Log4j.info(m2.get(map));
 
 
 
         String key = "other.sub.data";
         String[] keyArr = key.split("\\.");
-        System.out.println(Arrays.toString(keyArr));
+        Log4j.info(Arrays.toString(keyArr));
 
 
         if (true) return ;
@@ -92,7 +93,7 @@ public class Test {
         for (Method method : methods) {
 //            if (!method.getName().equals("FuncTs")) continue;
 
-            System.out.println("方法: " +  method);
+            Log4j.info("方法: " +  method);
             Parameter[] parameters = method.getParameters();
 //            Parameter[] parameters = method.getParameter();
 
@@ -102,22 +103,22 @@ public class Test {
                 Class<?> classType = paramTypes[i];
                 Type genericType = paramGenericType[i];
 
-//                System.out.println("****" + String[].class.isAssignableFrom(classType));
+//                Log4j.info("****" + String[].class.isAssignableFrom(classType));
 
-                System.out.println("\t形参: " + parameters[i]);
+                Log4j.info("\t形参: " + parameters[i]);
                 Annotation[] annotations = parameters[i].getAnnotations();
                 for (Annotation annotation : annotations) {
-                    System.out.println("\t\t形参注解: " + annotation );
+                    Log4j.info("\t\t形参注解: " + annotation );
 
                     if (IReqArray.class.isAssignableFrom(annotation.annotationType())){
                         IReqArray apiRequestArray = (IReqArray) annotation;
-                        System.out.println("\t\t\t\t" + apiRequestArray.value());
+                        Log4j.info("\t\t\t\t" + apiRequestArray.value());
                     }
 
 
                 }
-                System.out.println("\t参数 " + classType.getName());
-                System.out.println("\t泛型 " + genericType);
+                Log4j.info("\t参数 " + classType.getName());
+                Log4j.info("\t泛型 " + genericType);
 
 
 
@@ -129,14 +130,14 @@ public class Test {
 
                     for (Type actualTypeArgument : actualTypeArguments) {
 //                        Class typeArgClass = (Class) actualTypeArgument;
-                        System.out.print("\t泛型 " + actualTypeArgument);
+                        Log4j.info("\t泛型 " + actualTypeArgument);
 
                         if (genericType instanceof ParameterizedType) {
                             ParameterizedType type2 = (ParameterizedType) actualTypeArgument;
                             Type[] actualTypeArguments2 = type2.getActualTypeArguments();
 
                             for (Type actualTypeArgument2 : actualTypeArguments2) {
-                                System.out.print("\t泛型 " + actualTypeArgument2);                            }
+                                Log4j.info("\t泛型 " + actualTypeArgument2);                            }
 
                         }
 

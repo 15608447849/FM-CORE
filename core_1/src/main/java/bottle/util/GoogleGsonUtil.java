@@ -3,9 +3,13 @@ package bottle.util;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonToken;
+import com.google.gson.stream.JsonWriter;
 import org.json.JSONArray;
 import org.json.JSONTokener;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -22,9 +26,12 @@ import java.util.*;
 
 public class GoogleGsonUtil {
 
+
     public interface GsonPauseErrorPrintI{
         void jsonPauseError(String jsonText,Class classType,Type type, Throwable e,String errorInfo);
     }
+
+    private static final ThreadLocal<String> errors = new ThreadLocal<>();
 
     private static GsonPauseErrorPrintI printI = (jsonText, classType, type, e, errorInfo) -> Log4j.info(errorInfo);
 
@@ -32,181 +39,149 @@ public class GoogleGsonUtil {
         GoogleGsonUtil.printI = printI;
     }
 
-    private static void catchJsonPauseError(String jsonText, Throwable ex, Class classType, Type type){
+    private static void catchJsonPauseError(String jsonText, Throwable ex, Class<?> classType, Type type){
         StringBuilder s = new StringBuilder("GSON解析异常").append( "\tJSON= "+ jsonText);
-        if (classType!=null) s.append("\n类类型\t"+ classType);
-        if (type!=null) s.append("\n泛型泛型\t "+ type);
+
+        if (classType!=null) s.append("\n类型\t"+ classType.getName());
+        if (type!=null) s.append("\n泛型\t "+ type);
+
         Throwable temp = ex;
         while (temp!=null){
             s.append("\n");
+
             if (temp instanceof JsonSyntaxException){
                 assert ex instanceof JsonSyntaxException;
                 JsonSyntaxException jse = (JsonSyntaxException) ex;
-                s.append("类型转换错误").append("\t" + temp.getMessage());
-                if (jse.getFiledPath()!=null){
-                    s.append("\t").append(jse.getFiledPath());
+                s.append("错误\t").append(temp.getCause());
+                if (jse.getFiledPath()!=null) {
+                    s.append("\t类字段\t").append(jse.getFiledPath());
                 }
                 break;
             }
 
-            s.append(temp.getClass().getSimpleName()).append("\t" + temp.getMessage());
+            s.append("错误\t").append(temp.getClass().getSimpleName()).append("\t");
+
             temp = temp.getCause();
         }
-//        s.append("\n").append(StringUtil.printExceptInfo(ex));
         s.append("\n");
+
+        errors.set(s.toString());
 
         if (printI!=null){
             printI.jsonPauseError(jsonText,classType,type,ex,s.toString());
         }
     }
 
-    private static class TimestampTypeAdapter implements JsonSerializer<Timestamp>, JsonDeserializer<Timestamp> {
+    public static String getCurrentThreadJsonThrowableString(){
+        return errors.get();
+    }
+
+    private static final TypeAdapter<java.sql.Timestamp> TIMESTAMP_ADAPTER = new TypeAdapter<java.sql.Timestamp>() {
         private final DateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-
         @Override
-        public java.sql.Timestamp deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-            if (!(jsonElement instanceof JsonPrimitive)) {
-                throw new JsonParseException("The date should be a string value");
+        public java.sql.Timestamp read(JsonReader in) throws IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return null;
             }
             try {
-                Date date = format.parse(jsonElement.getAsString());
-                return new java.sql.Timestamp(date.getTime());
+                return new java.sql.Timestamp( format.parse(in.nextString()).getTime() );
             } catch (ParseException e) {
-                throw new JsonParseException(e);
+                throw new JsonSyntaxException(in,e);
             }
         }
-
         @Override
-        public JsonElement serialize(java.sql.Timestamp timestamp, Type type, JsonSerializationContext jsonSerializationContext) {
-            return new JsonPrimitive(format.format(new Date(timestamp.getTime())));
+        public void write(JsonWriter out, java.sql.Timestamp value) throws IOException {
+            out.value(format.format(new Date(value.getTime())));
         }
-    }
+    };
 
-    private static class TimeTypeAdapter implements JsonSerializer<java.sql.Time>, JsonDeserializer<java.sql.Time> {
-        private final DateFormat format = new SimpleDateFormat("HH:mm:ss");
-
-
-        @Override
-        public java.sql.Time deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-            if (!(jsonElement instanceof JsonPrimitive)) {
-                throw new JsonParseException("The date should be a string value");
-            }
-            try {
-                Date date = format.parse(jsonElement.getAsString());
-                return new java.sql.Time(date.getTime());
-            } catch (ParseException e) {
-                throw new JsonParseException(e);
-            }
-        }
-
-        @Override
-        public JsonElement serialize(java.sql.Time timestamp, Type type, JsonSerializationContext jsonSerializationContext) {
-            return new JsonPrimitive(format.format(new Date(timestamp.getTime())));
-        }
-    }
-
-    private static class DateTypeAdapter implements JsonSerializer<java.sql.Date>, JsonDeserializer<java.sql.Date> {
+    private static final TypeAdapter<java.sql.Date> DATE_ADAPTER = new TypeAdapter<java.sql.Date>() {
         private final DateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-
         @Override
-        public java.sql.Date deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-            if (!(jsonElement instanceof JsonPrimitive)) {
-                throw new JsonParseException("The date should be a string value");
+        public java.sql.Date read(JsonReader in) throws IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return null;
             }
             try {
-                Date date = format.parse(jsonElement.getAsString());
-                return new java.sql.Date(date.getTime());
+                return new java.sql.Date( format.parse(in.nextString()).getTime() );
             } catch (ParseException e) {
-                throw new JsonParseException(e);
+                throw new JsonSyntaxException(in,e);
             }
         }
-
         @Override
-        public JsonElement serialize(java.sql.Date timestamp, Type type, JsonSerializationContext jsonSerializationContext) {
-            return new JsonPrimitive(format.format(new Date(timestamp.getTime())));
+        public void write(JsonWriter out, java.sql.Date value) throws IOException {
+            out.value(format.format(new Date(value.getTime())));
         }
-    }
+    };
 
-    private static class BigIntegerTypeAdapter implements JsonSerializer<BigInteger>, JsonDeserializer<BigInteger> {
-
+    private static final TypeAdapter<java.sql.Time> TIME_ADAPTER = new TypeAdapter<java.sql.Time>() {
+        private final DateFormat format = new SimpleDateFormat("HH:mm:ss");
         @Override
-        public BigInteger deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-            if (!(jsonElement instanceof JsonPrimitive)) {
-                throw new JsonParseException("The date should be a string value");
+        public java.sql.Time read(JsonReader in) throws IOException {
+            if (in.peek() == JsonToken.NULL) {
+                in.nextNull();
+                return null;
             }
-            return new BigInteger(jsonElement.getAsString());
-        }
-
-        @Override
-        public JsonElement serialize(BigInteger var, Type type, JsonSerializationContext jsonSerializationContext) {
-            return new JsonPrimitive(var.toString());
-        }
-    }
-
-    private static class BigDecimalTypeAdapter implements JsonSerializer<BigDecimal>, JsonDeserializer<BigDecimal> {
-
-        @Override
-        public BigDecimal deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
-            if (!(jsonElement instanceof JsonPrimitive)) {
-                throw new JsonParseException("The date should be a string value");
+            try {
+                return new java.sql.Time( format.parse(in.nextString()).getTime() );
+            } catch (ParseException e) {
+                throw new JsonSyntaxException(in,e);
             }
-            return new BigDecimal(jsonElement.getAsString());
         }
-
         @Override
-        public JsonElement serialize(BigDecimal var, Type type, JsonSerializationContext jsonSerializationContext) {
-            String temp = var.toString();
-            int index = temp.indexOf(".");
-            if (index>0){
-
-                String sub = temp.substring(index+1);
-                if (sub.length()>=16){
-                    // 16位小数 转字符串
-                    return new JsonPrimitive(var.toString());
-                }
-            }
-            return new JsonPrimitive(Double.parseDouble(temp));
+        public void write(JsonWriter out, java.sql.Time value) throws IOException {
+            out.value(format.format(new Date(value.getTime())));
         }
-    }
+    };
+
 
     private final static Gson builder =  new GsonBuilder()
             .disableHtmlEscaping()
-            .setLongSerializationPolicy(LongSerializationPolicy.STRING)
-//            .registerTypeAdapter(Double.class, (JsonSerializer<Double>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src.doubleValue()) ))
-//            .registerTypeAdapter(Float.class, (JsonSerializer<Float>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src.floatValue()) ))
-//            .registerTypeAdapter(BigDecimal.class,(JsonSerializer<BigDecimal>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)))
-//            .registerTypeAdapter(Integer.class,(JsonSerializer<Integer>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src.intValue())))
-            .registerTypeAdapter(BigInteger.class,(JsonSerializer<BigInteger>) (src, typeOfSrc, context) -> new JsonPrimitive(src.toString()))
-//            .registerTypeAdapter(BigDecimal.class,(JsonSerializer<BigDecimal>) (src, typeOfSrc, context) -> new JsonPrimitive(src.toString()))
-            .registerTypeAdapter(java.sql.Timestamp.class, new TimestampTypeAdapter())
-            .registerTypeAdapter(java.sql.Date.class, new DateTypeAdapter())
-            .registerTypeAdapter(java.sql.Time.class, new TimeTypeAdapter())
-//            .registerTypeAdapter(BigInteger.class,new BigIntegerTypeAdapter())
-            .registerTypeAdapter(BigDecimal.class,new BigDecimalTypeAdapter())
+
+            .registerTypeAdapter(long.class, (JsonSerializer<Long>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
+            .registerTypeAdapter(Long.class, (JsonSerializer<Long>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
+            .registerTypeAdapter(BigInteger.class, (JsonSerializer<BigInteger>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
+            .registerTypeAdapter(BigDecimal.class, (JsonSerializer<BigDecimal>) (src, typeOfSrc, context) -> new JsonPrimitive(src.toPlainString()))
+
+            .registerTypeAdapter(java.sql.Timestamp.class, TIMESTAMP_ADAPTER)
+            .registerTypeAdapter(java.sql.Time.class, DATE_ADAPTER)
+            .registerTypeAdapter(java.sql.Date.class, TIME_ADAPTER)
+
             .create();
+
+//    private static class B{
+////                        Long a;
+//        BigDecimal b;
+//        BigInteger C;
+////        java.sql.Date d;
+//    }
+
+//    public static void main(String[] args) {
+//
+//        String json = "{\"a\":\"\",\"b\":\"256979949.0000000000000000007L\",\"C\":\"155555555555555555555555557\",\"d\":\"4\"}";
+//        B b = GoogleGsonUtil.jsonToJavaBean(json, B.class);
+//
+//        System.out.println(
+//                GoogleGsonUtil.javaBeanToJson(b)
+//        );
+//
+//    }
+
 
 
     /** 判断是否为JSON格式字符串 */
     public static boolean isJsonFormatter(String json) {
         try {
             if (json==null || json.length()==0) return false;
-//            new JsonParser().parse(json);
-            JsonElement jsonElement = JsonParser.parseString(json);
-//            System.out.println(jsonElement);
+            JsonParser.parseString(json);
         } catch (Exception e) {
+
             return false;
         }
         return true;
     }
-
-    public static void main(String[] args) {
-//        String json = "[0,0,'','','','']";
-        String json = "\"[\"111\",\"222\",2]\"";
-//        String json = "{\"time\":\"2022-07-14 20:16:52\",\"type\":\"callJavaMethod\",\"methodName\":\"serverRequestDownloadFile\",\"paramJson\":\"{\\\"mac\\\":\\\"B8-86-87-DA-6F-FE,B8-86-87-DA-6F-FE,80-FA-5B-20-EA-D7,00-01-00-01-27-3F,DA-3E-80-FA-5B-20,80-FA-5B-20-EA-D7\\\",\\\"url\\\":\\\"http://121.37.6.129:9999/temp/excel/44A8C7249633680E1FCECA246C207F96.xlsx\\\",\\\"tips\\\":\\\"�����ɹ� http://121.37.6.129:9999/temp/excel/44A8C7249633680E1FCECA246C207F96.xlsx\\\"}\"}";
-        System.out.println(isJsonFormatter(json));
-    }
-
 
 
     /**
@@ -259,61 +234,7 @@ public class GoogleGsonUtil {
             if (json==null || json.length()==0) return null;
 
             Type type = new TypeToken<HashMap<T,D>>() {}.getType();
-//            Gson _builder =  new GsonBuilder()
-//                    .registerTypeAdapter(type,
-//                            new TypeAdapter<Object>(){
-//                        @Override
-//                        public void write(JsonWriter out, Object value) throws IOException {
-//
-//                        }
-//
-//                        @Override
-//                        public Object read(JsonReader in) throws IOException {
-//
-//                            JsonToken token = in.peek();
-//
-//                            switch (token) {
-//                                case STRING:
-//                                    return in.nextString();
-//                                case NUMBER:
-//                                    String s = in.nextString();
-//                                    if (s.contains(".")) {
-//                                        return Double.valueOf(s);
-//                                    } else {
-//                                        try {
-//                                            return Integer.valueOf(s);
-//                                        } catch (Exception e) {
-//                                            return Long.valueOf(s);
-//                                        }
-//                                    }
-//                                case BOOLEAN:
-//                                    return in.nextBoolean();
-//                                case NULL:
-//                                    in.nextNull();
-//                                    return null;
-//
-//                                case BEGIN_ARRAY:
-//                                    List<Object> list = new ArrayList<>();
-//                                    in.beginArray();
-//                                    while (in.hasNext()) {
-//                                        list.add(read(in));
-//                                    }
-//                                    in.endArray();
-//                                    return list;
-//
-//                                case BEGIN_OBJECT:
-//                                    HashMap<T,D> map = new HashMap<>();
-//                                    in.beginObject();
-//                                    while (in.hasNext()) {
-//                                        map.put((T)in.nextName(), (D)read(in));
-//                                    }
-//                                    in.endObject();
-//                                    return map;
-//                                default:
-//                                    throw new IllegalStateException();
-//                            }
-//                        }
-//                    } ).create();
+
               return builder.fromJson(json, type);//对于javabean直接给出class实例
         } catch (Exception e) {
             catchJsonPauseError(json,e,null,null);
@@ -370,5 +291,7 @@ public class GoogleGsonUtil {
         }
         return null;
     }
+
+
 
 }

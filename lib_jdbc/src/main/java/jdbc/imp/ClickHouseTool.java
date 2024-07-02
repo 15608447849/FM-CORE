@@ -1,8 +1,6 @@
 package jdbc.imp;
 
 import bottle.util.EncryptUtil;
-import bottle.util.Log4j;
-
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +37,6 @@ public class ClickHouseTool {
             table_keys_sql_map.put(md5Key,insertSQL);
         }
 
-        Log4j.info(insertSQL+"\n\t待插入条数: "+ valueParams.size());
 
         int[] res = TomcatJDBCDAO.update_clickHouse(insertSQL, valueParams);
 

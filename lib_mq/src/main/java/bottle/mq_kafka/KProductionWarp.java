@@ -4,6 +4,7 @@ package bottle.mq_kafka;
 import bottle.MQLog;
 import bottle.log.PrintLogThread;
 import bottle.threadpool.IOThreadPool;
+import bottle.util.StringUtil;
 import org.apache.kafka.clients.producer.*;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TimeoutException;
@@ -31,46 +32,56 @@ public class KProductionWarp implements KFKWarpI{
 
     }
 
+    private String shorten(String content){
+        if (content.length()<50){
+            return content;
+        }else {
+            return  content.substring(0,50)+"...";
+        }
+    }
     // 同步发送
     public void sendMessageToTopicSync(final String topicName,final String messageType,final String jsonContent,KFKProductionMessageCallback callback){
         if (jsonContent.getBytes().length >  5 * 1024 * 1024 ){
-            System.out.println(PrintLogThread.sdf.format(System.currentTimeMillis())+" KAFKA生产-待发送数据文本内容超过5M大小限制,已丢弃,内容如下\n\t"+jsonContent);
+            MQLog.warn("KAFKA生产-待发送数据文本内容超过5M大小限制,已丢弃 , 内容如下\n"+jsonContent);
             return;
         }
 
         producer.send(new ProducerRecord<>(topicName, messageType,jsonContent), (metadata, exception) -> {
             if (exception!=null){
                 //发送失败
+                MQLog.warn("KAFKA生产-发送失败\ntopic: "+ topicName+" , messageType: "+messageType+" , exception:\n" + StringUtil.printExceptInfo(exception)+"\n"+shorten(jsonContent));
+
                 if (exception instanceof SerializationException){
                     // 序列化错误
-                    MQLog.warn("KAFKA生产-序列化错误\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+                    MQLog.warn("KAFKA生产-序列化错误\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if (exception instanceof BufferExhaustedException ){
                     //缓冲区已满
-                    MQLog.warn("KAFKA生产-缓冲区已满\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+                    MQLog.warn("KAFKA生产-缓冲区已满\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if ( exception instanceof TimeoutException){
                     //超时异常
-                    MQLog.warn("KAFKA生产-超时\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+                    MQLog.warn("KAFKA生产-超时\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if (exception instanceof InterruptedException){
                     //发送线程中断异常
-                    MQLog.warn("KAFKA生产-线程中断\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+                    MQLog.warn("KAFKA生产-线程中断\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
+
                 // 尝试重试
                 if (callback!=null){
                     boolean isRetry = callback.fail(topicName,messageType,jsonContent,exception);
                     if (isRetry){
-                        MQLog.warn("KAFKA生产-重新发送\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+                        MQLog.warn("KAFKA生产-重新发送\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                         sendMessageToTopicAsync(topicName,messageType,jsonContent,callback);
-                        return;
+
                     }
                 }
-                MQLog.warn("KAFKA生产-发送失败(已丢弃)\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+jsonContent);
+
 
             }else {
                 // 发送成功

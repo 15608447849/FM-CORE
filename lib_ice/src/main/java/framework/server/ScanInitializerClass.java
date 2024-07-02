@@ -21,6 +21,11 @@ class ScanInitializerClass implements ScanApplicationClassCallback{
             Log4j.info("加入 服务初始化加载器: "+ initializer +" 排序: " + initializer.priority());
             initializerList.add(initializer);
         }
+        if ( !classType.equals(IceCallerObserver.IceCallerSubscribeI.class) && IceCallerObserver.IceCallerSubscribeI.class.isAssignableFrom(classType)){
+            IceCallerObserver.IceCallerSubscribeI subscribe = ClassInstanceStorage.getInstance(classType);
+            Log4j.info("加入 服务方法调用订阅器: "+ subscribe );
+            IceCallerObserver.addSubscribe(subscribe);
+        }
     }
 
     @Override

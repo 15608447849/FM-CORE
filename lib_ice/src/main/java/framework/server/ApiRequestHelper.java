@@ -26,15 +26,24 @@ public class ApiRequestHelper {
         else if (Float.class.isAssignableFrom(classType)) return 0.0F;
         else if (Double.class.isAssignableFrom(classType)) return 0.0D;
         // 引用类型等
-        return null;
+        throw new IllegalArgumentException("请求参数异常,引用类型 = " + classType);
+    }
+
+    private static Object getJsonBeanValue(String json,Type genericType){
+        Object bean = GoogleGsonUtil.jsonToJavaBean(json,genericType);
+        if (bean == null)  throw new IllegalArgumentException("请求参数JSON字段异常\n"
+                +GoogleGsonUtil.getCurrentThreadJsonThrowableString());
+        return bean;
     }
 
     private static Object getTypeValue(Object value, Class<?> classType,Type genericType) {
 
         if (String.class.isAssignableFrom(classType)) {
-            if (value instanceof String)  return  value;
-            else  return GoogleGsonUtil.javaBeanToJson(value);
+            if (value instanceof String) return value;
+            // 传递的不是字符串 转成json序列化文本
+            else return GoogleGsonUtil.javaBeanToJson(value);
         }
+
         else if (Boolean.class.isAssignableFrom(classType)) return Boolean.valueOf(String.valueOf(value));
         else if (Integer.class.isAssignableFrom(classType)) return Integer.valueOf(String.valueOf(value));
         else if (Long.class.isAssignableFrom(classType)) return Long.valueOf(String.valueOf(value));
@@ -42,8 +51,7 @@ public class ApiRequestHelper {
         else if (Double.class.isAssignableFrom(classType)) return Double.valueOf(String.valueOf(value));
         else if (BigDecimal.class.isAssignableFrom(classType)) return new BigDecimal(String.valueOf(value));
         else if (BigInteger.class.isAssignableFrom(classType)) return new BigInteger(String.valueOf(value));
-
-        else return GoogleGsonUtil.jsonToJavaBean(GoogleGsonUtil.javaBeanToJson(value),genericType);
+        else return getJsonBeanValue( GoogleGsonUtil.javaBeanToJson(value) ,genericType);
     }
 
     /* 处理级联map key对象 */
@@ -57,13 +65,13 @@ public class ApiRequestHelper {
             if (value!=null){
                 String json = GoogleGsonUtil.javaBeanToJson(value);
                 map = GoogleGsonUtil.string2Map(json);
-                if (map == null) throw new IllegalArgumentException("请求参数 校验失败 ,不是MAP JSON格式文本,KEY = "+ key +" JSON = "+ json );
+                if (map == null) throw new IllegalArgumentException("请求参数,校验失败 JSON格式不是MAP KEY = "+ key +" JSON = "+ json );
             }
 
             key = k;
             value = map.get(key);
 
-            if (value == null) throw new IllegalArgumentException("请求参数 校验失败,JSON缺少KEY: "+ key);
+            if (value == null) throw new IllegalArgumentException("请求参数,校验失败 JSON缺少KEY = "+ key);
         }
 
         return value;
@@ -83,7 +91,8 @@ public class ApiRequestHelper {
             // 数组
             if (String[].class.isAssignableFrom(classType)){
                 int value = ((IReqArray) annotation).value();
-                if (value>0 && (arrayParam==null || arrayParam.length != value) ) throw new IllegalArgumentException("请求参数 数组长度("+(arrayParam==null?-1:arrayParam.length)+")不正确,固定长度: "+ value );
+                if (value>0 && (arrayParam==null || arrayParam.length != value) )
+                    throw new IllegalArgumentException("请求参数 数组长度("+(arrayParam==null?-1:arrayParam.length)+")不正确,固定长度: "+ value );
                 // 数组参数
                 return arrayParam;
             }
@@ -99,8 +108,9 @@ public class ApiRequestHelper {
             }
             if (value){
                 // 自动转换实体对象
-               return GoogleGsonUtil.jsonToJavaBean(jsonParam,genericType);
+               return getJsonBeanValue(jsonParam,genericType);
             }
+            throw new IllegalArgumentException("请求参数异常 JSON = " + jsonParam);
         }
 
         if (IReqKey.class.isAssignableFrom(annotation.annotationType())){

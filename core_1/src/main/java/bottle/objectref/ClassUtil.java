@@ -6,7 +6,6 @@ import bottle.util.Log4j;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.*;
 
@@ -70,7 +69,6 @@ public class ClassUtil {
      */
     private static void findAndAddClassesInPackageByJarFile(String packageName, URL jarURL, Set<Class<?>> classes) {
         try (JarFile jarFile = ((JarURLConnection) jarURL.openConnection()).getJarFile()){
-//            Log4j.info("findAndAddClassesInPackageByJarFile ... ");
             // 从此jar包 得到一个枚举类
             Enumeration<JarEntry> entries = jarFile.entries();
             // 同样的进行循环迭代
@@ -82,15 +80,12 @@ public class ClassUtil {
                     String name = entry.getName().replace("/",".");
                     if (!name.startsWith(packageName) || !name.endsWith(".class")) continue;
 
-//                    Log4j.info("findAndAddClassesInPackageByJarFile name " + name);
-
                     String classPath = name.replace(".class","");
                     addClassToClassSet(classes,classPath);
                 } catch (Exception e) {
                     Log4j.error(e);
                 }
             }
-//            Log4j.info("findAndAddClassesInPackageByJarFile !!! " );
         } catch (Exception e) {
             Log4j.error(e);
         }
@@ -107,7 +102,6 @@ public class ClassUtil {
                     = Thread.currentThread().getContextClassLoader().getResources(packagePath.replace(".","/"));
             while (urls.hasMoreElements()){
                 URL url = urls.nextElement();
-//                Log4j.info("运行时环境经 Thread.currentThread().getContextClassLoader().getResources url = " + url);
                 if (url.getProtocol().equals("jar")){
                     findAndAddClassesInPackageByJarFile(packagePath,url,classes);
                 }
@@ -119,7 +113,6 @@ public class ClassUtil {
         } catch (Exception e) {
             Log4j.error(e);
         }
-//        Log4j.info("获取运行时环境 class size = "+ classes.size());
         return classes;
     }
 
@@ -149,7 +142,6 @@ public class ClassUtil {
     public static boolean hotLoadJarFile(String url){
         try {
             URL jarUrl = convertJarURL(url);
-            Log4j.info("加载: " + jarUrl);
 
             Method method = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
             boolean accessible = method.isAccessible();		// 获取方法的访问权限
@@ -174,7 +166,7 @@ public class ClassUtil {
         try {
             // 获取url
             URL jarUrl = convertJarURL(url);
-            System.out.println("扫描: " + jarUrl);
+//            System.out.println("扫描: " + jarUrl);
             // 获取jar
             try(JarFile jar = ((JarURLConnection) jarUrl.openConnection()).getJarFile()){
                 scanJarFileHandle(jar,prefix,classes);

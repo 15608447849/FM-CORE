@@ -9,6 +9,8 @@
 
 package IceInternal;
 
+import bottle.util.Log4j;
+
 public final class TraceUtil
 {
     public static void
@@ -116,29 +118,29 @@ public final class TraceUtil
                     {
                         s = "" + n;
                     }
-                    System.out.print(s + " ");
+                    Log4j.info(s + " ");
                 }
                 else
                 {
-                    System.out.print("    ");
+                    Log4j.info("    ");
                 }
             }
 
-            System.out.print('"');
+            Log4j.info('"');
 
             for(int j = i; j < data.length && j - i < inc; j++)
             {
                 if(data[j] >= (byte)32 && data[j] < (byte)127)
                 {
-                    System.out.print((char)data[j]);
+                    Log4j.info((char)data[j]);
                 }
                 else
                 {
-                    System.out.print('.');
+                    Log4j.info('.');
                 }
             }
 
-            System.out.println('"');
+            Log4j.info('"');
         }
     }
 

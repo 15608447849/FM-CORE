@@ -360,7 +360,7 @@ public class IceClient {
 //        String[] arr = new String[]{"1609311693886000","0","false"};
 //        String url = "ice://ERP@tcp:114.115.168.87:5061@phdsServer@DiagnoseReport_ProductStructI@diagnosticDataList@PHDS_LOGIN_USER_7D16807A35C166C13197E2334707E368";
 //        String res = IceClient.executeURLArray(url,arr);
-//        System.out.println(res);
+//        Log4j.info(res);
 //
 //    }
 

@@ -140,7 +140,7 @@ public class LoggerI implements Logger
 
         if(_out == null)
         {
-            System.err.print(message.toString());
+            Log4j.info(message.toString());
         }
         else
         {

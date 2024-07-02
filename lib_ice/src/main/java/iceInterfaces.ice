@@ -6,7 +6,7 @@ ice 接口调用
 */
 module inf{
 
-    /** string 数组 */
+    /** 字符串数组 */
    sequence<string> stringArray;
 
    /** 字节数组 */
@@ -33,18 +33,18 @@ module inf{
 
       /** 服务接口 interface */
       interface Interfaces{
-          /** 前后台交互 */
+          /** 公共接口请求 */
           string accessService(IRequest request);
-          /** 消息推送: 客户端主动上线  */
+          /** 长连接: 客户端主动上线  */
           void online(Ice::Identity identity);
-          /** 消息推送: 服务端向指定客户端发送消息 */
+          /** 长连接: 服务端向指定客户端发送消息 */
           void sendMessageToClient(string identityName,string message);
       };
 
 
-    /** 消息推送-客户端 需要具体客户端实现 */
+    /** 长连接客户端,需要具体客户端实现 */
     interface PushMessageClient{
-        /** 客户端接受服务端 消息 */
+        /** 客户端接收服务端 消息 */
         void receive(string message);
     };
 

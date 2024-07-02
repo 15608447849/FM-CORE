@@ -31,42 +31,20 @@ public class Log4j {
         Log4j.writeLogToSpecFile("./logs/trace/", Log4j.sdfDict.format(new Date()), _message);
         info(obj);
     }
+
     public static void _trace(Object obj){
-        addMessageQueue(new LogBean(LogLevel.trace,obj));
+        addMessageQueue(new LogBean(LogLevel.trace,obj).setEnableCallback(false));
     }
+
     public static void debug(Object obj){
-        addMessageQueue(new LogBean(LogLevel.debug,obj));
+        addMessageQueue(new LogBean(LogLevel.debug,obj).setEnableCallback(false));
     }
+
     public static void info(Object obj){
-        addMessageQueue(new LogBean(LogLevel.info,obj));
+        addMessageQueue(new LogBean(LogLevel.info,obj).setEnableCallback(false));
     }
+
     public static void info(String... str){
-        if(str==null) return;
-        StringBuilder sb = new StringBuilder();
-        for (String s : str){
-            sb.append(s).append(" ");
-        }
-        addMessageQueue(new LogBean(LogLevel.info,sb.toString()));
-    }
-
-    public static void error(Throwable t){ addMessageQueue(new LogBean(LogLevel.error,"",t)); }
-    public static void error(String message, Throwable t){ addMessageQueue(new LogBean(LogLevel.error,message,t)); }
-    public static void warn(Object obj){
-        addMessageQueue(new LogBean(LogLevel.warn,obj));
-    }
-    public static void fatal(Object obj){
-        addMessageQueue(new LogBean(LogLevel.fatal,obj));
-    }
-
-    public static void debugNcb(String... str){
-        if(str==null) return;
-        StringBuilder sb = new StringBuilder();
-        for (String s : str){
-            sb.append(s).append(" ");
-        }
-        addMessageQueue(new LogBean(LogLevel.debug,sb.toString()).setEnableCallback(false));
-    }
-    public static void infoNcb(String... str){
         if(str==null) return;
         StringBuilder sb = new StringBuilder();
         for (String s : str){
@@ -74,4 +52,17 @@ public class Log4j {
         }
         addMessageQueue(new LogBean(LogLevel.info,sb.toString()).setEnableCallback(false));
     }
+
+    public static void warn(Object obj){
+        addMessageQueue(new LogBean(LogLevel.warn,obj).setEnableCallback(false));
+    }
+
+    public static void fatal(Object obj){
+        addMessageQueue(new LogBean(LogLevel.fatal,obj).setEnableCallback(false));
+    }
+
+    public static void error(Throwable t){ addMessageQueue(new LogBean(LogLevel.error,"",t)); }
+
+    public static void error(String message, Throwable t){ addMessageQueue(new LogBean(LogLevel.error,message,t)); }
+
 }

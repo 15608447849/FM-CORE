@@ -9,6 +9,8 @@
 
 package IceBox;
 
+import bottle.util.Log4j;
+
 public final class Admin
 {
     private static class Client extends Ice.Application
@@ -16,7 +18,7 @@ public final class Admin
         private void
         usage()
         {
-            System.err.println(
+            Log4j.info(
                 "Usage: " + appName() + " [options] [command...]\n" +
                 "Options:\n" +
                 "-h, --help          Show this message.\n" +
@@ -43,7 +45,7 @@ public final class Admin
                 }
                 else if(args[idx].charAt(0) == '-')
                 {
-                    System.err.println(appName() + ": unknown option `" + args[idx] + "'");
+                    Log4j.info(appName() + ": unknown option `" + args[idx] + "'");
                     usage();
                     return 1;
                 }
@@ -80,7 +82,7 @@ public final class Admin
                     String managerEndpoints = properties.getProperty("IceBox.ServiceManager.Endpoints");
                     if(managerEndpoints.length() == 0)
                     {
-                        System.err.println(appName() + ": property `IceBoxAdmin.ServiceManager.Proxy' is not set");
+                        Log4j.info(appName() + ": property `IceBoxAdmin.ServiceManager.Proxy' is not set");
                         return 1;
                     }
 
@@ -91,7 +93,7 @@ public final class Admin
                     String managerAdapterId = properties.getProperty("IceBox.ServiceManager.AdapterId");
                     if(managerAdapterId.length() == 0)
                     {
-                        System.err.println(appName() + ": property `IceBoxAdmin.ServiceManager.Proxy' is not set");
+                        Log4j.info(appName() + ": property `IceBoxAdmin.ServiceManager.Proxy' is not set");
                         return 1;
                     }
 
@@ -104,7 +106,7 @@ public final class Admin
             IceBox.ServiceManagerPrx manager = IceBox.ServiceManagerPrxHelper.checkedCast(base);
             if(manager == null)
             {
-                System.err.println(appName() + ": `" + base.toString() + "' is not an IceBox::ServiceManager");
+                Log4j.info(appName() + ": `" + base.toString() + "' is not an IceBox::ServiceManager");
                 return 1;
             }
 
@@ -119,7 +121,7 @@ public final class Admin
                 {
                     if(++i >= commands.size())
                     {
-                        System.err.println(appName() + ": no service name specified.");
+                        Log4j.info(appName() + ": no service name specified.");
                         return 1;
                     }
 
@@ -130,19 +132,19 @@ public final class Admin
                     }
                     catch(IceBox.NoSuchServiceException ex)
                     {
-                        System.err.println(appName() + ": unknown service `" + service + "'");
+                        Log4j.info(appName() + ": unknown service `" + service + "'");
                         return 1;
                     }
                     catch(IceBox.AlreadyStartedException ex)
                     {
-                        System.err.println(appName() + "service already started.");
+                        Log4j.info(appName() + "service already started.");
                     }
                 }
                 else if(command.equals("stop"))
                 {
                     if(++i >= commands.size())
                     {
-                        System.err.println(appName() + ": no service name specified.");
+                        Log4j.info(appName() + ": no service name specified.");
                         return 1;
                     }
 
@@ -153,17 +155,17 @@ public final class Admin
                     }
                     catch(IceBox.NoSuchServiceException ex)
                     {
-                        System.err.println(appName() + ": unknown service `" + service + "'");
+                        Log4j.info(appName() + ": unknown service `" + service + "'");
                         return 1;
                     }
                     catch(IceBox.AlreadyStoppedException ex)
                     {
-                        System.err.println(appName() + "service already stopped.");
+                        Log4j.info(appName() + "service already stopped.");
                     }
                 }
                 else
                 {
-                    System.err.println(appName() + ": unknown command `" + command + "'");
+                    Log4j.info(appName() + ": unknown command `" + command + "'");
                     usage();
                     return 1;
                 }

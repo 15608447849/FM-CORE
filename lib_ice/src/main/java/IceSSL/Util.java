@@ -9,6 +9,8 @@
 
 package IceSSL;
 
+import bottle.util.Log4j;
+
 public final class Util
 {
     //
@@ -67,6 +69,6 @@ public final class Util
     public static void
     main(String[] args)
     {
-        System.out.println(jdkTarget);
+        Log4j.info(jdkTarget);
     }
 }

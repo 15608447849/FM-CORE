@@ -9,6 +9,8 @@
 
 package IceInternal;
 
+import bottle.util.Log4j;
+
 public final class DefaultsAndOverrides
 {
     DefaultsAndOverrides(Ice.Properties properties, Ice.Logger logger)
@@ -122,7 +124,7 @@ public final class DefaultsAndOverrides
             boolean b = properties.getPropertyAsInt("Ice.Override.Compress") > 0;
             if(b && !BasicStream.compressible())
             {
-                System.err.println("warning: bzip2 support not available, Ice.Override.Compress ignored");
+                Log4j.info("warning: bzip2 support not available, Ice.Override.Compress ignored");
                 b = false;
             }
             overrideCompressValue = b;

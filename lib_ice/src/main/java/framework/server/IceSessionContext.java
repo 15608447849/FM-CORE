@@ -88,10 +88,6 @@ public class IceSessionContext {
         return this;
     }
 
-    public Method getCallMethod() {
-        return callMethod;
-    }
-
     public Result FAIL(String message){
         return getResult().fail(message);
     }
@@ -160,30 +156,36 @@ public class IceSessionContext {
     }
 
     private void initialize(Current __current, IRequest request) throws Exception{
-
         current = __current;
         param = request.param;
 
-        callClass = Class.forName(request.pkg + "."+ request.cls);
-        Method[] methods =  callClass.getDeclaredMethods();
+        try {
+            callClass = Class.forName(request.pkg + "."+ request.cls);
+        } catch (ClassNotFoundException e) {
+            throw new IllegalAccessException("接口("+request.cls+")未定义");
+        }
 
+        Method[] methods =  callClass.getDeclaredMethods();
         for (Method method : methods){
             if (method.getName().equals(request.method)
                     && method.getParameterTypes().length>=1
-                    && this.getClass().isAssignableFrom( method.getParameterTypes()[0])
+                    && this.getClass().isAssignableFrom( method.getParameterTypes()[0] )
             ){
-                if (Modifier.isStatic(method.getModifiers()) || Modifier.isPrivate(method.getModifiers())) continue;
+                if (Modifier.isStatic(method.getModifiers())
+                        || Modifier.isPrivate(method.getModifiers()))
+                    continue;
+
                 if (useAipAnnotation){
                     Api api = method.getAnnotation(Api.class);
                     if (api == null) continue;
                 }
-                callMethod = method;
 
+                callMethod = method;
                 break;
             }
         }
 
-        if (callMethod == null) throw new IllegalAccessException("接口未定义");
+        if (callMethod == null) throw new IllegalAccessException("接口("+request.cls+"#"+request.method+")未定义");
         api = callMethod.getAnnotation(Api.class);
         // 方法参数
         parameters = callMethod.getParameters();
@@ -202,7 +204,6 @@ public class IceSessionContext {
     }
 
 
-
     /** 调用具体方法 */
     protected Object call() throws Exception{
 
@@ -214,13 +215,16 @@ public class IceSessionContext {
             for (int i=1;i<paramsInstances.length;i++){
                 paramsInstances[i] = convertFuncRequest(this,parameters[i],paramTypes[i], paramGenericTypes[i],getArrayParam(),getJsonParam());
             }
-
+            // 调用前
+            IceCallerObserver.onBefore(caller,callMethod);
             responseValue = ObjectRefUtil.callMethod(caller, callMethod, paramTypes, paramsInstances);
-
             if (responseValue == null) responseValue = getResult();
+            // 调用后
+            IceCallerObserver.onAfter(caller,callMethod);
 
         }catch (Exception e){
-
+            // 调用异常
+            IceCallerObserver.onError(caller,callMethod,e);
             if (e instanceof InvocationTargetException
                     && ((InvocationTargetException)e).getTargetException() instanceof IllegalArgumentException){
 
@@ -230,9 +234,7 @@ public class IceSessionContext {
                 if (getResult().getMessage() == null){
                     getResult().fail("请求失败");
                 }
-
                 responseValue = getResult();
-
             } else throw  e;
         }finally {
             ObjectPoolManager.destroyObject(caller);
@@ -240,6 +242,15 @@ public class IceSessionContext {
 
         return responseValue;
     }
+
+
+
+    public Class<?> getCaller() {
+        return callClass;
+    }
+
+    public Method getCallMethod() {return callMethod;}
+
 
     public void putObject(Object object){
         if (object==null) return;

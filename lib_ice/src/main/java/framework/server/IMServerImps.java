@@ -46,7 +46,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
                     //消息存储实体
                     IPersistentMessage iPushMessageStore = ClassInstanceStorage.getInstance(classType);
                     iPushMessageStoreList.add(iPushMessageStore);
-//                  System.out.println("ICE 初始化,推送消息持久化处理器: " + classType + " -> " + iPushMessageStore);
+//                  Log4j.info("ICE 初始化,推送消息持久化处理器: " + classType + " -> " + iPushMessageStore);
 //                  Log4j.info(FLAG+"消息数据存储实例:"+ iPushMessageStore.getClass());
                     Log4j.info("加入 消息数据存储实例: "+ iPushMessageStore );
 
@@ -105,9 +105,9 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
                     List<IPMessage> messageList = getOfflineMessageFromIdentityName(identityName);
 
                     if (messageList!=null && messageList.size()>0){
-                        System.out.println("目标: "+ identityName+ " , 离线消息数量: "+ messageList.size());
+                        Log4j.info("目标: "+ identityName+ " , 离线消息数量: "+ messageList.size());
                         for (IPMessage message : messageList){
-                            //System.out.println("添加离线消息: "+ message.id+" -> "+ message.identityName+" "+ message.content );
+                            //Log4j.info("添加离线消息: "+ message.id+" -> "+ message.identityName+" "+ message.content );
 
                             addMessageQueue(message);
                         }
@@ -167,7 +167,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
             Ice.ObjectPrx base = __current.con.createProxy(identity).ice_invocationTimeout(15*1000);
 
             PushMessageClientPrx client = PushMessageClientPrxHelper.uncheckedCast(base);
-//                System.out.println(FLAG+"[预上线] 当前客户端: "+ identity+"("+identity.category+"/"+identity.name+") "
+//                Log4j.info(FLAG+"[预上线] 当前客户端: "+ identity+"("+identity.category+"/"+identity.name+") "
 //                        +" \nice_getConnectionId: "+ client.ice_getConnectionId()
 //                        +" \nice_isConnectionCached: "+ client.ice_isConnectionCached()
 //                        +" \nice_isTwoway: "+ client.ice_isTwoway()
@@ -356,7 +356,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
                     }finally {
                         sendCount++;
 //                        if (message.id == 0){
-                           // System.out.println("发送消息次数统计: " + sendCount+"客户端数("+clientPrxList.size()+") 是否成功("+isSendSuccess+") MsgID("+message.identityName+")>> "+ _message);
+                           // Log4j.info("发送消息次数统计: " + sendCount+"客户端数("+clientPrxList.size()+") 是否成功("+isSendSuccess+") MsgID("+message.identityName+")>> "+ _message);
 //                        }
                     }
 //                });
@@ -455,13 +455,13 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
 
         // 类型<>标识
         for (Map.Entry<String, ConcurrentHashMap<String, List<_LongConnectionCallback>>> entry : onlineClientMaps.entrySet()) {
-            System.out.println("在线标识: "+ entry.getKey());
+            Log4j.info("在线标识: "+ entry.getKey());
             // 标识-客户端列表
             ConcurrentHashMap<String, List<_LongConnectionCallback>> map = entry.getValue();
-//            System.out.println("在线标识 MAP SIZE : "+  map.size() );
+//            Log4j.info("在线标识 MAP SIZE : "+  map.size() );
 
             for (Map.Entry<String, List<_LongConnectionCallback>> stringArrayListEntry : map.entrySet()) {
-                System.out.println("\t在线标识 K = "+  entry.getKey() + " V = "+ stringArrayListEntry.getKey() );
+                Log4j.info("\t在线标识 K = "+  entry.getKey() + " V = "+ stringArrayListEntry.getKey() );
                 list.add(new Tuple2<>(entry.getKey(),stringArrayListEntry.getKey()));
             }
         }
