@@ -7,6 +7,9 @@ import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.DataBaseType;
 import jdbc.define.option.JDBCSessionFacade;
 import jdbc.define.session.JDBCSessionManagerAbs;
+import jdbc.define.slice.DatabaseSliceRule;
+import jdbc.define.slice.TableManySliceRule;
+import jdbc.define.slice.TableSliceRule;
 
 import java.io.*;
 import java.net.URL;
@@ -22,7 +25,7 @@ import java.util.jar.JarFile;
 public class TomcatJDBC {
 
     /* 表->列结构 */
-    public static class TableRow {
+    public static final class TableRow {
         public final String tableName;//表名
         public final String rowName;//列名
         public final String rowMark;//备注
@@ -60,7 +63,7 @@ public class TomcatJDBC {
     private final static Map<String,List<TableRow>> tableRowsAllMap = new HashMap<>();
 
     /* 获取文件 */
-    private static File[] getDicFile(String dirName,Class clazz) throws Exception {
+    private static File[] getDicFile(String dirName,Class<?> clazz) throws Exception {
         //优先加载外部,外部不存在, 加载resource
         String dirPath = new File(clazz.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent();
         File dir = new File(dirPath+"/resources/"+dirName);
@@ -96,16 +99,16 @@ public class TomcatJDBC {
 
         }
 
-        if (!dir.isDirectory()) throw new FileNotFoundException(dirName +" is not directory");
+        if (!dir.isDirectory()) throw new FileNotFoundException(dirName +" is not exits directory");
         return Objects.requireNonNull(dir.listFiles());
     }
 
     /* 获取文件流 */
-    private static InputStream getResourceConfig(String config) throws FileNotFoundException {
+    private static InputStream getResourceConfig(String config) throws IOException {
         //优先加载外部,外部不存在, 加载resource
         String dirPath = new File(TomcatJDBC.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getParent();
         File file = new File(dirPath+"/resources/"+config);
-        if (file.exists() && file.isFile() && file.length() > 0) return new FileInputStream(file);
+        if (file.exists() && file.isFile() && file.length() > 0) return Files.newInputStream(file.toPath());
         return TomcatJDBC.class.getClassLoader().getResourceAsStream(config);
     }
 
@@ -201,10 +204,8 @@ public class TomcatJDBC {
     private synchronized static void genTableInfo() {
         clearDataBaseInfo();
         //生成数据库表信息
-        Iterator<Map.Entry<String , TomcatJDBCPool>> it = databasePoolMap.entrySet().iterator();
 
-        while (it.hasNext()){
-            Map.Entry<String ,TomcatJDBCPool> entry = it.next();
+        for (Map.Entry<String, TomcatJDBCPool> entry : databasePoolMap.entrySet()) {
             TomcatJDBCPool pool = entry.getValue();
             createDataBaseInfo(pool);
             pool.closeSession();
@@ -335,7 +336,7 @@ public class TomcatJDBC {
         return tableRowsAllMap.get(dataBaseType.name()+"@"+tableName);
     }
 
-    //根据表名/键下标 获取键对象
+    //根据表名,键下标 获取键对象
     public static TableRow getTableRowByTableNameAndRowIndex(DataBaseType dataBaseType,String tableSimple, String tableCustomFlag, int index){
         List<TableRow> list = getTableRowKeyList(dataBaseType,tableSimple,tableCustomFlag);
         if (index < list.size()) return list.get(index);
@@ -353,32 +354,7 @@ public class TomcatJDBC {
         return set==null ? null : new ArrayList<>(set);
     }
 
-    //分表规则
-    public interface TableSliceRule {
-         String convert(String tableName,int table_slice);
-    }
-
-    public interface TableManySliceRule {
-        String convert(String tableName,int[] table_slices);
-    }
-
-    //分库规则
-    public interface DatabaseSliceRule {
-        String convert(List<String> dbList, int db_slice);
-    }
-
-    public static void setTableSlice(TableSliceRule role) {
-        TomcatJDBCDAO.tableRole = role;
-    }
-
-    public static void setTableManyRole(TableManySliceRule role) {
-        TomcatJDBCDAO.tableManyRole = role;
-    }
-
-    public static void setDatabaseSlice(DatabaseSliceRule role) { TomcatJDBCDAO.databaseRole = role; }
-
-
-    private static void databseInfoToString(TomcatJDBCPool pool,StringBuilder sb) {
+    private static void databaseInfoToString(TomcatJDBCPool pool,StringBuilder sb) {
         sb.append("\n\t 数据库: "+ pool );
         String key = pool.getDataBaseType()+"@"+pool.getDataBaseName();
         Set<String> list = dbTableAllMap.get(key);
@@ -396,7 +372,7 @@ public class TomcatJDBC {
         }
         list = dbProcedureAllMap.get(key);
         if (list!=null && list.size()>0){
-            sb.append("\n\t\t存储过程/函数总数: "+ list.size());
+            sb.append("\n\t\t存储过程和函数总数: "+ list.size());
             for (String p_fName : list){
                 sb.append("\n\t\t\t\t").append(p_fName);
             }
@@ -408,7 +384,7 @@ public class TomcatJDBC {
         List<TomcatJDBCPool> list = new ArrayList<>(databasePoolMap.values());
         StringBuilder sb = new StringBuilder("数据库初始化情况:");
         for (TomcatJDBCPool pool : list){
-            databseInfoToString(pool,sb);
+            databaseInfoToString(pool,sb);
         }
         return sb.toString();
     }

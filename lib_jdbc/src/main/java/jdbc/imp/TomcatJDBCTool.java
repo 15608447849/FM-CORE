@@ -34,11 +34,28 @@ public final class TomcatJDBCTool {
     private TomcatJDBCTool(){};
 
 
+    private static String arraysToString(Object[] a) {
+        if (a == null)
+            return "null";
+
+        int iMax = a.length - 1;
+        if (iMax == -1)
+            return "【】";
+
+        StringBuilder b = new StringBuilder();
+        b.append('【');
+        for (int i = 0; ; i++) {
+            b.append(a[i]);
+            if (i == iMax)
+                return b.append('】').toString();
+            b.append("¦");
+        }
+    }
     /**
      * 打印 行/列
      */
     public static void printLines(List<Object[]> lines) {
-        StringBuilder sb = new StringBuilder("打印查询结果,总条数:"+lines.size()+":\n");
+        StringBuilder sb = new StringBuilder("查询总条数:"+lines.size()+":\n");
 
         for (int i = 0; i < lines.size(); i++) {
             sb.append(i).append("\t").append(arraysToString(lines.get(i)));
@@ -50,23 +67,7 @@ public final class TomcatJDBCTool {
         JDBCLogger.print(sb.toString());
     }
 
-    public static String arraysToString(Object[] a) {
-        if (a == null)
-            return "null";
 
-        int iMax = a.length - 1;
-        if (iMax == -1)
-            return "[]";
-
-        StringBuilder b = new StringBuilder();
-        b.append('[');
-        for (int i = 0; ; i++) {
-            b.append(a[i]);
-            if (i == iMax)
-                return b.append(']').toString();
-            b.append(" | ");
-        }
-    }
 
     /**
      * 转换为LINK 子句
@@ -124,11 +125,10 @@ public final class TomcatJDBCTool {
     static Object convertStringToBaseType(Object val, Class<?> cls) {
         try {
 
-            if (cls == String.class) return String.valueOf(val);
+            // 目标类型与指定类型一样
+            if (val.getClass() == cls) return val;
 
-            if (val.getClass() == cls) {
-                return val;
-            }
+            if (cls == String.class) return String.valueOf(val);
 
             if (cls == BigDecimal.class) return new BigDecimal(String.valueOf(val));
 
@@ -141,8 +141,7 @@ public final class TomcatJDBCTool {
 
             String v = String.valueOf(val);
             Method method = baseTypeConvertWrapType(cls).getMethod(methodName, String.class);
-            Object res = method.invoke(null, v);
-            return res;
+            return method.invoke(null, v);
         } catch (Exception e) {
             JDBCLogger.error("类型转换错误,val=" + val + ",cls=" + cls, e);
         }

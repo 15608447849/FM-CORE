@@ -143,7 +143,18 @@ public class GoogleGsonUtil {
             .registerTypeAdapter(long.class, (JsonSerializer<Long>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
             .registerTypeAdapter(Long.class, (JsonSerializer<Long>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
             .registerTypeAdapter(BigInteger.class, (JsonSerializer<BigInteger>) (src, typeOfSrc, context) -> new JsonPrimitive(String.valueOf(src)) )
-            .registerTypeAdapter(BigDecimal.class, (JsonSerializer<BigDecimal>) (src, typeOfSrc, context) -> new JsonPrimitive(src.toPlainString()))
+            .registerTypeAdapter(BigDecimal.class, (JsonSerializer<BigDecimal>) (src, typeOfSrc, context) -> {
+                String var = src.toPlainString();
+                int index = var.indexOf(".");
+                if (index>0){
+                    //四位小数返回doublue
+                    String lstr = var.substring(index+1);
+                    if (lstr.length()<=10){
+                        return new JsonPrimitive(Double.valueOf(var));
+                    }
+                }
+                return new JsonPrimitive(var);
+            })
 
             .registerTypeAdapter(java.sql.Timestamp.class, TIMESTAMP_ADAPTER)
             .registerTypeAdapter(java.sql.Time.class, DATE_ADAPTER)
@@ -151,23 +162,23 @@ public class GoogleGsonUtil {
 
             .create();
 
-//    private static class B{
-////                        Long a;
-//        BigDecimal b;
+    private static class B{
+//                        Long a;
+        BigDecimal b;
 //        BigInteger C;
-////        java.sql.Date d;
-//    }
+//        java.sql.Date d;
+    }
 
-//    public static void main(String[] args) {
-//
-//        String json = "{\"a\":\"\",\"b\":\"256979949.0000000000000000007L\",\"C\":\"155555555555555555555555557\",\"d\":\"4\"}";
-//        B b = GoogleGsonUtil.jsonToJavaBean(json, B.class);
-//
-//        System.out.println(
-//                GoogleGsonUtil.javaBeanToJson(b)
-//        );
-//
-//    }
+    public static void main(String[] args) {
+
+        String json = "{\"a\":\"\",\"b\":\"79949.0000000007\",\"C\":\"155555555555555555555555557\",\"d\":\"4\"}";
+        B b = GoogleGsonUtil.jsonToJavaBean(json, B.class);
+
+        System.out.println(
+                GoogleGsonUtil.javaBeanToJson(b)
+        );
+
+    }
 
 
 

@@ -7,5 +7,7 @@ dependencies {
     // 驱动
     implementation 'org.apache.tomcat:tomcat-jdbc:9.0.70'
     implementation 'com.clickhouse:clickhouse-jdbc:0.3.2-patch11:all'
+    // 解析器
+    implementation 'com.github.jsqlparser:jsqlparser:4.7'
 
 }

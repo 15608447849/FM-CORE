@@ -36,10 +36,7 @@ public class ClickHouseTool {
             insertSQL = sb.toString();
             table_keys_sql_map.put(md5Key,insertSQL);
         }
-
-
         int[] res = TomcatJDBCDAO.update_clickHouse(insertSQL, valueParams);
-
         return intArrayToValue(res);
     }
 

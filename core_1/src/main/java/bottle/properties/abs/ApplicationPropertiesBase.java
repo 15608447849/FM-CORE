@@ -29,11 +29,18 @@ public final class ApplicationPropertiesBase {
 
     static {
         baseType.put("class java.lang.String",new StringConvertImp());
+        baseType.put("class [Ljava.lang.String;",new StringArrayConvertImp());
+
         baseType.put("boolean",new BooleanConvertImp());
         baseType.put("int",new IntConvertImp());
+        baseType.put("class java.lang.Integer",new IntConvertImp());
         baseType.put("float",new FloatConvertImp());
+        baseType.put("class java.lang.Float",new FloatConvertImp());
         baseType.put("double",new DoubleConvertImp());
+        baseType.put("class java.lang.Double",new DoubleConvertImp());
         baseType.put("long",new LongConvertImp());
+        baseType.put("class java.lang.Long",new LongConvertImp());
+
     }
 
 
@@ -169,6 +176,7 @@ public final class ApplicationPropertiesBase {
     public static void assignmentByType(Object instanceClass, Field field, String value) {
         //获取属性类型
         String type = field.getGenericType().toString();
+//        System.out.println(type);
         if(baseType.containsKey(type)){
             try {
                 baseType.get(type).setValue(instanceClass,field,value);

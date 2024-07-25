@@ -2,6 +2,9 @@ package jdbc.define.option;
 
 import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
+import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
 
 import java.lang.reflect.*;
 import java.sql.*;
@@ -142,5 +145,15 @@ public class JDBCUtils {
             int t = types[i];
             cst.registerOutParameter(i + startPos, t);
         }
+    }
+
+    public static boolean isSelectStatement(String sql) {
+        try {
+            Statement parse = CCJSqlParserUtil.parse(sql);
+            return parse instanceof net.sf.jsqlparser.statement.select.Select;
+        } catch (Exception e) {
+
+        }
+        return false;
     }
 }

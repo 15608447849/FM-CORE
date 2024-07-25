@@ -22,14 +22,15 @@ public class JDBCSessionFacadeWrap implements DaoApi{
         return op.query(sql,params,page);
     }
 
-    @Override
-    public List<Object[]> queryMany(List<String> sqlList, Object[] params, Page page) {
-        return op.queryMany(sqlList,params,page);
-    }
 
     @Override
     public <T> List<T> query(String sql, Object[] params, Class<T> beanClass,Page page) {
         return op.query(sql,params,beanClass,page);
+    }
+
+    @Override
+    public List<Object[]> queryMany(List<String> sqlList, Object[] params, Page page) {
+        return op.queryMany(sqlList,params,page);
     }
 
     @Override

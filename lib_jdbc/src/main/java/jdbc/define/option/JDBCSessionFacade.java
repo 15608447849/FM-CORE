@@ -3,6 +3,8 @@ import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.session.JDBCSessionManagerAbs;
 import java.sql.*;
+import java.sql.Date;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static java.sql.Statement.SUCCESS_NO_INFO;
@@ -57,15 +59,27 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     //查询
     @Override
     public List<Object[]> query(String sql, Object[] params,Page page) {
+        List<Object[]> result = new ArrayList<>();
+        // 限制语句类型
+        if (!JDBCUtils.isSelectStatement(sql)) {
+            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), new JDBCException("sql not query statement"));
+            return result;
+        }
         JDBCUtils.filterParam(params);
         sql = Page.executeDatabasePaging(this,sql,params,page);
-        List<Object[]> result = new ArrayList<>();
+        long conn_time = 0,exe_time = 0,read_time = 0 ;
         if (Page.checkQuery(page)){
+            long t1 = System.currentTimeMillis();
             Connection conn = getSession();
+            long t2 = System.currentTimeMillis();
+            conn_time = t2 - t1;
             try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
                 if (pst!=null){
                     JDBCUtils.setParameters(pst, params);
+                    long t3 = System.currentTimeMillis();
                     if (pst.execute()){
+                        long t4 = System.currentTimeMillis();
+                        exe_time = t4 - t3;//执行用时
                         try(ResultSet rs = pst.getResultSet()){
                             if (rs!=null){
                                 int cols = rs.getMetaData().getColumnCount(); //行数
@@ -78,8 +92,11 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                                 }
                             }
                         }
+                        long t5 = System.currentTimeMillis();
+                        read_time = t5 - t4;//读取用时
                     }
                 }
+              JDBCLogger.writeSlowQuery(sql,conn_time,exe_time,read_time);
             }catch (Exception e){
                 result.clear();
                 JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);
@@ -93,22 +110,34 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     //对象映射查询
     @Override
     public <T> List<T> query(String sql, Object[] params, Class<T> beanClass,Page page) {
+        List<T> result = new ArrayList<>();
+        // 限制语句类型
+        if (!JDBCUtils.isSelectStatement(sql)) {
+            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), new JDBCException("sql not query statement"));
+            return result;
+        }
         JDBCUtils.filterParam(params);
         sql = Page.executeDatabasePaging(this,sql,params,page);
-        List<T> result = new ArrayList<>();
+        long conn_time = 0,exe_time = 0,read_time = 0 ;
         if (Page.checkQuery(page)){
+            long t1 = System.currentTimeMillis();
             Connection conn = this.getSession();
+            long t2 = System.currentTimeMillis();
+            conn_time = t2 - t1;
             try (PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
                 if (pst!=null){
                     JDBCUtils.setParameters(pst, params);
+                    long t3 = System.currentTimeMillis();
                     if (pst.execute()){
+                        long t4 = System.currentTimeMillis();
+                        exe_time = t4 - t3;//执行用时
                         try(ResultSet rs = pst.getResultSet()){
                             if (rs!=null){
                                 while(rs.next()) {
                                     try {
                                         T bean = JDBCUtils.createObject(beanClass);
                                         //获取本身和父级对象
-                                        for (Class clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
+                                        for (Class<?> clazz = bean.getClass() ; clazz != Object.class; clazz = clazz.getSuperclass()) {
                                             JDBCUtils.classAssignment(clazz,bean,rs);
                                         }
                                         result.add(bean);
@@ -118,8 +147,11 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                                 }
                             }
                         }
+                        long t5 = System.currentTimeMillis();
+                        read_time = t5 - t4;//读取用时
                     }
                 }
+                JDBCLogger.writeSlowQuery(sql,conn_time,exe_time,read_time);
             } catch (Exception e) {
                 result.clear();
                 JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);
@@ -134,25 +166,20 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     @Override
     public List<Object[]> queryMany(List<String> sqlList, Object[] params, Page page) {
         List<Object[]> result = new ArrayList<>();
-        if (sqlList==null || sqlList.size() == 0){
-            return result;
-        }
+        if (sqlList==null || sqlList.size() == 0) return result;
         for (String sql : sqlList){
             List<Object[]> tempResult = query(sql,params,null);
             if (tempResult!=null && !tempResult.isEmpty()){
                 result.addAll(tempResult);
             }
         }
-
         return Page.executeMemoryPaging(page,result);
     }
 
     @Override
     public <T> List<T> queryMany(List<String> sqlList, Object[] params, Class<T> beanClass, Page page) {
         List<T> result = new ArrayList<>();
-        if (sqlList==null || sqlList.size() == 0){
-            return result;
-        }
+        if (sqlList==null || sqlList.size() == 0) return result;
         for (String sql : sqlList){
             List<T> tempResult = query(sql,params,beanClass,null);
             if (tempResult!=null && !tempResult.isEmpty()){

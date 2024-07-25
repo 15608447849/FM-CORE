@@ -4,13 +4,16 @@ import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.*;
 import bottle.tuples.Tuple2;
+import jdbc.define.slice.DatabaseSliceRule;
+import jdbc.define.slice.TableManySliceRule;
+import jdbc.define.slice.TableSliceRule;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 
 import java.sql.Types;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -35,11 +38,12 @@ public class TomcatJDBCDAO {
 
     private static final Pattern pattern = Pattern.compile(RGE);// 匹配的字符串
 
-    static TomcatJDBC.TableSliceRule tableRole = null;
+    public static TableSliceRule tableRole = null;
 
-    static TomcatJDBC.TableManySliceRule tableManyRole = null;
+    public static TableManySliceRule tableManyRole = null;
 
-    static TomcatJDBC.DatabaseSliceRule databaseRole = null;
+    public static DatabaseSliceRule databaseRole = null;
+
 
     private static final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//时间格式化工具
     private static final String[] sqlTimeFunNameArray = {"current_timestamp[(]\\s*[)]","current_date[(]\\s*[)]","current_time[(]\\s*[)]","now[(]\\s*[)]","curdate[(]\\s*[)]","curtime[(]\\s*[)]"};
@@ -47,12 +51,24 @@ public class TomcatJDBCDAO {
 
     private static List<String> regSubStr(String sql) {
         List<String> list = new ArrayList<>();
-        Matcher m = pattern.matcher(sql);
-        while (m.find()) {
-            list.add(m.group(1));
-        }
+        try {
+            Matcher m = pattern.matcher(sql);
+            while (m.find()) list.add(m.group(1));
+        } catch (Exception ignored) {}
         return list;
     }
+
+    private static List<String> pauseSqlTableNames(String sql) {
+        List<String> list = new ArrayList<>();
+        try {
+            Statement parse = CCJSqlParserUtil.parse(sql);
+            TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+            Set<String> tables = tablesNamesFinder.getTables(parse);
+            return new ArrayList<>(tables);
+        }catch (Exception ignored){}
+        return list;
+    }
+
 
     private static String replaceAllCaseInsensitive(String source, String oldStr,String newStr){
         return Pattern.compile(oldStr, Pattern.CASE_INSENSITIVE).matcher(source).replaceAll(newStr);
@@ -69,11 +85,15 @@ public class TomcatJDBCDAO {
         return sql;
     }
 
+
     /* 返回使用的表名之一(最后一个),原始sql */
     private static Tuple2<String, String> sqlConvertNative(String sql, int table_slice) {
         List<String> tableList = regSubStr(sql);
         if (tableList.size() == 0)
-            throw new JDBCException("SQL: '" + sql + "' ,没有找到匹配表明,请使用: {{?TABLE_NAME}} 进行标识");
+            tableList = pauseSqlTableNames(sql);
+        if (tableList.size() == 0)
+            throw new JDBCException("没有找到符合规则{{?TABLE_NAME}}的表名或SQL语法解析失败 SQL:\t"+sql);
+
         String _tableName = null;
         for (String tableName : tableList) {
             _tableName = tableName.trim();
@@ -86,6 +106,7 @@ public class TomcatJDBCDAO {
         }
         return new Tuple2<>(_tableName, sql);
     }
+
 
     /* 转换sql,返回库名 */
     private static String transformNativeSql(List<String> sqlList, List<String> nativeSqlList, int table_slice) {
@@ -151,7 +172,7 @@ public class TomcatJDBCDAO {
             }
         }
         String database = tableNameMatchDatabase(dataBaseType,false,_tableName, 0);
-        //2. 获取连接池操作对象
+        // 获取连接池操作对象
         JDBCSessionFacade op = TomcatJDBC.getFacade(dataBaseType,database);
 
         return new Tuple2<>(new JDBCSessionFacadeWrap(op), sqlList);
