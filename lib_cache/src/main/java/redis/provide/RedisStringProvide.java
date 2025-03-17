@@ -1,15 +1,6 @@
 package redis.provide;
-
 import redis.config.JedisClusterBuild;
 
-/**
- * Redis 字符串数据类型的相关命令用于管理 redis字符串值
- * 
- * @author JiangWenGuang
- * @since 2018-06-14
- * @version 1.0
- *
- */
 public class RedisStringProvide extends RedisProvide {
 
 	public RedisStringProvide(JedisClusterBuild jedisClusterBuild) {

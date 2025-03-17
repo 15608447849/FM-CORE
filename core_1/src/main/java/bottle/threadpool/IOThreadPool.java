@@ -54,7 +54,7 @@ public class IOThreadPool extends Thread implements IThreadPool {
 
     private void recode(String str) {
         String info = PrintLogThread.sdf.format(new Date())+" ["+name+"]\t" + str+"\n";
-        System.out.print(info);
+        //System.out.print(info);
         WriteLogThread.appendContentToFile("./logs/iotp/", PrintLogThread.sdfDict.format(new Date()), info);
     }
 

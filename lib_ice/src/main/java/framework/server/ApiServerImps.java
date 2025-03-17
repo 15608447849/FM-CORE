@@ -2,15 +2,18 @@ package framework.server;
 
 import Ice.Communicator;
 import Ice.Current;
+import bottle.log.LogBean;
+import bottle.log.LogLevel;
 import bottle.util.ClassInstanceStorage;
+import bottle.util.EncryptUtil;
 import bottle.util.GoogleGsonUtil;
 import bottle.util.Log4j;
-import bottle.util.TimeTool;
 import com.onek.server.inf.IRequest;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
+import static bottle.log.PrintLogThread.addMessageQueue;
 import static bottle.util.StringUtil.printExceptInfo;
 
 
@@ -19,10 +22,17 @@ import static bottle.util.StringUtil.printExceptInfo;
  * 接口实现
  */
 public class ApiServerImps extends IMServerImps{
-
-
+    // 简略响应最大长度
+    private static final int BRIEF_MAX = 1024;
+    // 是否允许打印信息
     public static boolean isAllowPrintInformation = true;
 
+    // 默认包路径
+    private String packagePath;
+    // 方法名 - 参数序列
+    private final HashMap<String,String> idempotentMap = new HashMap<>();
+
+    private final Timer idempotentTimer = new Timer();
     //拦截器
     private final ArrayList<Interceptor> interceptorList  = new ArrayList<>();
 
@@ -54,15 +64,40 @@ public class ApiServerImps extends IMServerImps{
         }
     };
 
-    private String packagePath;
 
-    /* 记录参数进入日志 */
-    private static String writeInputParameters(StringBuilder sb) {
-        String _message = sb.toString();
-        Log4j.writeLogToSpecFile("./logs/ice/"+Log4j.sdfDict.format(new Date()),
+    private String responseBrief(String resultString){
+        if (resultString.length()> BRIEF_MAX){
+            return resultString.substring(0,BRIEF_MAX) + "...省略" + (resultString.length()-BRIEF_MAX) + "字符,共"+resultString.getBytes().length+"字节";
+        }
+        return resultString;
+    }
+
+    /* 完整访问记录 */
+    private void accessCompleteRecode(StringBuilder sb) {
+        addMessageQueue(new LogBean(LogLevel.info, sb.toString())
+                .setPrintLog(false)
+        );
+    }
+    /* 简略访问记录 */
+    private void accessBriefRecode(StringBuilder sb) {
+        addMessageQueue(new LogBean(
+                "./logs/ice/"+Log4j.sdfDict.format(new Date()),
                 Log4j.sdfFile.format(new Date()),
-                _message+"\n");
-        return _message;
+                sb.toString()+"\n")
+                .setEnableCallback(false)
+        );
+    }
+
+    /* 及时访问记录 */
+    private void accessBriefTimely(String title, String callSeq, String sb) {
+
+        String prefix = String.format("【%s】【%s】【%s】\n" , Log4j.sdf.format(new Date()) , callSeq, title );
+        addMessageQueue(new LogBean(
+                "./logs/ice/"+Log4j.sdfDict.format(new Date()),
+                "timely.log",
+                prefix + sb+"\n")
+                .setEnableCallback(false)
+        );
     }
 
     @Override
@@ -79,13 +114,9 @@ public class ApiServerImps extends IMServerImps{
     //打印参数
     private String requestParam(IRequest request, Current __current, String detail) throws Exception{
                 StringBuilder sb = new StringBuilder();
-                sb.append("【").append( Log4j.sdf.format(new Date())).append("】");
 
                 if (__current != null && __current.con!=null) {
-                    sb.append("\n")
-                            .append(__current.con.toString().split("\n")[1]
-                            .replace("remote address =","REMOTE ADDRESS：\t")
-                            .trim());
+                    sb.append(__current.con.toString().split("\n")[1].replace("remote address =","REMOTE ADDRESS：\t").trim());
                 }
                 sb.append("\nTOKEN：\t").append(request.param.token);
 
@@ -128,11 +159,9 @@ public class ApiServerImps extends IMServerImps{
         return resultString;
     }
 
-    //方法名 - 参数序列
-    private final HashMap<String,String> idempotentMap = new HashMap<>();
-    private final Timer idempotentTimer = new Timer();
 
-    private boolean idempotent(IceSessionContext context, long interval) {
+
+    private boolean checkIdempotentOperate(IceSessionContext context, long interval) {
         final String key = context.getCallerSTR();
         String value = context.getParamSTR();
         String _value = idempotentMap.get(key);
@@ -141,9 +170,10 @@ public class ApiServerImps extends IMServerImps{
             idempotentTimer.schedule(new TimerTask() {
                 @Override
                 public void run() {
+                    //指定时间后移除
                     idempotentMap.remove(key);
                 }
-            },interval); //一秒内禁止点击
+            },interval);
             return false;
         }
         return value.equals(_value);
@@ -152,29 +182,29 @@ public class ApiServerImps extends IMServerImps{
     //客户端 - 接入服务
     @Override
     public String accessService(IRequest request, Current __current) {
-
+        Date queryTime = new Date(); // 请求时间
         Api api = null;
+        String callSeq = null;//请求序列
         Object result = null;//响应结果
         String queryInfo = null;
-        String executeTimeStr = null;
         String executeErrorStr = null;
-        String resultString ;
+        String resultString = null;
+        String executeTimeStr = null;
 
         IceSessionContext context = null;
         long executeTime = System.currentTimeMillis();
         try {
             //创建context
             context = IceSessionContext.create(__current,packagePath,request);
-
             api = context.getApi();
-
+            callSeq = EncryptUtil.encryption(context.getCallerSTR()+context.getParamSTR()+queryTime.getTime());
             queryInfo = requestParam(request, __current, api==null? "未使用@Api": api.detail());
-
-            if (api!=null && api.idempotent()){
+            if (api != null && api.idempotent()){
                 //连续调用检查
-                if (idempotent(context,api.idempotentInterval())) throw new IllegalStateException("BUSY");
+                if (checkIdempotentOperate(context,api.idempotentInterval())) throw new IllegalStateException("BUSY");
             }
 
+            accessBriefTimely(callSeq,"Request",queryInfo);
             if (interceptor(context)) { //拦截
                 result = context.getResult();
             }else{
@@ -208,50 +238,65 @@ public class ApiServerImps extends IMServerImps{
                 context.destroy();
             }
         }
-
         executeTimeStr = System.currentTimeMillis() - executeTime +" 毫秒";
-        recodeInfoAndPrintConsole(api,queryInfo,resultString,executeTimeStr,executeErrorStr);
+        accessBriefTimely(callSeq,"Response\t"+executeTimeStr,responseBrief(resultString));
+        recodeInfoAndPrintConsole(api,queryTime, callSeq,queryInfo,resultString,executeTimeStr,executeErrorStr);
         return resultString;
     }
 
     //记录请求过程并打印结果
-    private void recodeInfoAndPrintConsole(Api api,String queryInfo, String resultString, String executeTimeStr, String executeErrorStr) {
-        StringBuilder recode = new StringBuilder();
+    private void recodeInfoAndPrintConsole(Api api,Date queryTime,String callSeq,String queryInfo, String resultString, String executeTimeStr, String executeErrorStr) {
+
+        String prefix = String.format("【%s】\t【%s】\n" , Log4j.sdf.format(queryTime) , callSeq );
+        StringBuilder complete = new StringBuilder(prefix) ;
+        StringBuilder brief = new StringBuilder(prefix);
+
         //请求信息
-        if (queryInfo!=null) recode.append(queryInfo);
+        if (queryInfo!=null) {
+            complete.append(queryInfo);
+            brief.append(queryInfo);
+        }
         //响应信息
         if (resultString!=null) {
-            String _resultString = resultString;
-            if (resultString.length()>1024){
-                _resultString = resultString.substring(0,1024)+"...省略"+(resultString.length()-1024)+"字符";
-            }
-            recode.append("\nRESPONSE：\t").append(_resultString);
+            complete.append("\nRESPONSE：\t").append(resultString);
+            brief.append("\nRESPONSE：\t").append(responseBrief(resultString));
         }
         //错误信息
-        if (executeErrorStr!=null) recode.append("\nEXECUTE ERROR：\t").append(executeErrorStr);
-        //执行请求耗时
-        if(executeTimeStr!=null) recode.append("\nEXECUTE TIME：\t").append(executeTimeStr);
+        if (executeErrorStr!=null){
+            complete.append("\nEXECUTE ERROR：\t").append(executeErrorStr);
+            brief.append("\nEXECUTE ERROR：\t").append(executeErrorStr);
+
+        }
+        // 执行请求耗时
+        if(executeTimeStr!=null) {
+            complete.append("\nEXECUTE TIME：\t").append(executeTimeStr);
+            brief.append("\nEXECUTE TIME：\t").append(executeTimeStr);
+        }
+
         // 写入日志
-        if (recode.length() > 0) writeInputParameters(recode);
+        if (complete.length() > 0) {
+            accessCompleteRecode(complete);
+            accessBriefRecode(brief);
+        }
 
         if (isAllowPrintInformation){
             StringBuilder console = new StringBuilder();
-            if(api!=null && api.inPrint()  || executeErrorStr!=null ){
-                console.append(queryInfo);
+            if(api!=null && api.inPrint()  || executeErrorStr != null ){
+                console.append(queryInfo);// 请求信息
             }
 
             if(api!=null && api.outPrint()){
-                console.append(resultString);
+                console.append(resultString); // 响应信息
                 if (executeTimeStr!=null){
                     console.append("\n执行耗时").append(executeTimeStr);
                 }
             }
 
             if (executeErrorStr!=null){
-                console.append("\n").append(executeErrorStr);
+                console.append("\n").append(executeErrorStr); // 错误信息
             }
             // 控制台输出
-            if (console.length()>0) Log4j.info(console);
+            if (console.length()>0) System.out.println(prefix + console);
         }
     }
 

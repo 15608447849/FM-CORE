@@ -7,6 +7,8 @@ import com.google.gson.*;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.option.JDBCUtils;
 import jdbc.define.option.Page;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
+import net.sf.jsqlparser.statement.Statement;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -557,10 +559,4 @@ public final class TomcatJDBCTool {
         return resIndex;
     }
 
-    public static void main(String[] args) {
-        System.out.println(currentTimestampSecSeq());
-        System.out.println(currentTimestampSecSeq());
-        System.out.println(currentTimestampSecSeq());
-        System.out.println(tableOID());
-    }
 }

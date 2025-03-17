@@ -12,6 +12,8 @@ import java.util.Date;
  */
 public final class JDBCLogger {
 
+    private static final ThreadLocal<Throwable> errors = new ThreadLocal<>();
+
     private JDBCLogger(){}
 
     public static void print(String message){
@@ -57,8 +59,13 @@ public final class JDBCLogger {
     }
 
     public static void error(String desc,Throwable e){
+        errors.set(e);
         desc = desc == null ? "":desc ;
         writeJDBCFile("desc = "+desc+",\n"+StringUtil.printExceptInfo(e));
         PrintLogThread.addMessageQueue(new LogBean(LogLevel.error,desc,e).setEnableCallback(false));//写入log日志
+    }
+
+    public static Throwable currentThreadJdbcError(){
+        return errors.get();
     }
 }

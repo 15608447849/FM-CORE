@@ -3,12 +3,10 @@ import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import jdbc.define.session.JDBCSessionManagerAbs;
 import java.sql.*;
-import java.sql.Date;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static java.sql.Statement.SUCCESS_NO_INFO;
-
+import static jdbc.define.option.JDBCUtils.completeSQL;
 
 
 /**
@@ -60,11 +58,6 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     @Override
     public List<Object[]> query(String sql, Object[] params,Page page) {
         List<Object[]> result = new ArrayList<>();
-        // 限制语句类型
-        if (!JDBCUtils.isSelectStatement(sql)) {
-            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), new JDBCException("sql not query statement"));
-            return result;
-        }
         JDBCUtils.filterParam(params);
         sql = Page.executeDatabasePaging(this,sql,params,page);
         long conn_time = 0,exe_time = 0,read_time = 0 ;
@@ -76,6 +69,7 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
             try(PreparedStatement pst = JDBCUtils.prepareStatement(conn, sql, false)){
                 if (pst!=null){
                     JDBCUtils.setParameters(pst, params);
+
                     long t3 = System.currentTimeMillis();
                     if (pst.execute()){
                         long t4 = System.currentTimeMillis();
@@ -96,7 +90,7 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                         read_time = t5 - t4;//读取用时
                     }
                 }
-              JDBCLogger.writeSlowQuery(sql,conn_time,exe_time,read_time);
+              JDBCLogger.writeSlowQuery(completeSQL(sql,params),conn_time,exe_time,read_time);
             }catch (Exception e){
                 result.clear();
                 JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);
@@ -111,11 +105,6 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
     @Override
     public <T> List<T> query(String sql, Object[] params, Class<T> beanClass,Page page) {
         List<T> result = new ArrayList<>();
-        // 限制语句类型
-        if (!JDBCUtils.isSelectStatement(sql)) {
-            JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), new JDBCException("sql not query statement"));
-            return result;
-        }
         JDBCUtils.filterParam(params);
         sql = Page.executeDatabasePaging(this,sql,params,page);
         long conn_time = 0,exe_time = 0,read_time = 0 ;
@@ -151,7 +140,7 @@ public class JDBCSessionFacade extends SessionOption<JDBCSessionManagerAbs, Conn
                         read_time = t5 - t4;//读取用时
                     }
                 }
-                JDBCLogger.writeSlowQuery(sql,conn_time,exe_time,read_time);
+                JDBCLogger.writeSlowQuery(completeSQL(sql,params),conn_time,exe_time,read_time);
             } catch (Exception e) {
                 result.clear();
                 JDBCLogger.error("【数据库错误】"+getManager()+"\nSQL:\t"+sql+"\n参数:\t"+JDBCUtils.param2String(params), e);

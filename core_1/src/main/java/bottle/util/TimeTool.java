@@ -4,6 +4,8 @@ import bottle.tuples.Tuple2;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,17 +64,20 @@ public class TimeTool {
         if (str != null && str.length()>0) {
             for (String stdTimePattern : stdTimePatterns) {
                 try {
-                    SimpleDateFormat dateFormat = new SimpleDateFormat(stdTimePattern);
-                    dateFormat.setLenient(false);// 使用严格模式精准解析
+//                    SimpleDateFormat dateFormat = new SimpleDateFormat(stdTimePattern);
+//                    dateFormat.setLenient(false);// 使用严格模式精准解析
+                    LocalDate.parse(str, DateTimeFormatter.ofPattern(stdTimePattern));
 
-                    list.add(new Tuple2<>(stdTimePattern, dateFormat.parse(str)));
-                } catch (ParseException ignored) {
+                    list.add(new Tuple2<>(stdTimePattern, new SimpleDateFormat(stdTimePattern).parse(str) ));
+                } catch (Exception ignored) {
                 }
             }
         }
         return  list;
 
     }
+
+
 
     /**添加x天*/
     public static Date addDay(Date date, int num) {

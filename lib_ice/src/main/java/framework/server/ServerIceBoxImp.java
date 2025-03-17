@@ -4,6 +4,7 @@ import Ice.*;
 import IceBox.Service;
 import bottle.objectref.ClassUtil;
 import bottle.util.Log4j;
+import bottle.util.TimeTool;
 import framework.client.IceClient;
 import java.io.File;
 import java.lang.Exception;
@@ -96,18 +97,22 @@ public final class ServerIceBoxImp implements Service {
     //初始化服务
     private void initServer(Communicator communicator,String packagePath) {
         try {
-            long time = System.currentTimeMillis();
-            /* 如果直接执行.class文件那么会得到当前class的绝对路径。如果封装在jar包里面执行jar包那么会得到当前jar包的绝对路径*/
+
+            /* 如果直接执行.class文件那么会得到当前class的绝对路径;
+            如果封装在jar包里面执行jar包那么会得到当前jar包的绝对路径*/
             File file = new File(getClass().getProtectionDomain().getCodeSource().getLocation().getFile());
             String jarUrl = file.toURI().toASCIIString();
+
+            long time = System.currentTimeMillis();
             Set<String> classFullNameSet = ClassUtil.scanJarFileOnGetClassPaths(jarUrl,packagePath);
-            Log4j.info("扫描jar 耗时:"+ (System.currentTimeMillis() - time)+"ms   "+ packagePath+".*.class 数量: "+classFullNameSet.size());
+            Log4j.info("扫描jar 耗时: "+ TimeTool.formatDuring((System.currentTimeMillis() - time))+" 包目录: "+ packagePath+" class文件数: "+classFullNameSet.size());
+
             time = System.currentTimeMillis();
             for (String classFullName : classFullNameSet) {
                 ScanApplicationClassExecute.scanRunClass(classFullName,scanInitializerClass);
             }
             ScanApplicationClassExecute.startRunClass(scanInitializerClass,serverName,rpcGroupName,communicator);
-            Log4j.info("初始化class 耗时:"+ (System.currentTimeMillis() - time)+"ms");
+            Log4j.info("初始化class 耗时: "+ TimeTool.formatDuring(System.currentTimeMillis() - time));
 
 //            scanJarAllClass(packagePath);
 //            Log4j.info("扫描jar 耗时:"+ (System.currentTimeMillis() - time)+"ms");

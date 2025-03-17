@@ -2,6 +2,7 @@ package framework.server;
 
 import Ice.Communicator;
 import bottle.util.Log4j;
+import bottle.util.TimeTool;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,22 +15,16 @@ public class ScanApplicationClassExecute {
     protected static void scanRunClass(String classFullName,ScanApplicationClassCallback callback){
         try {
             if (classFullName.lastIndexOf("$")!=-1 || classFullName.contains(".server.inf.")) return;
-            long a = System.currentTimeMillis();
-            boolean skip = false;
+
             for (String suffix : skipInitializeScanSuffixList){
-                if (classFullName.endsWith(suffix)){
-                    skip = true;
-                    break;
-                }
+                if (classFullName.endsWith(suffix)) return;
             }
-            if (!skip){
-                Class<?> classType = Class.forName(classFullName);
-                findClass(callback,classType);
-            }
+
+            long a = System.currentTimeMillis();
+            Class<?> classType = Class.forName(classFullName);
             long b = System.currentTimeMillis();
-            if (b - a > 1000){
-                Log4j.info((b - a) + "TIMEOUT>>  Class.forName("+classFullName+") use time: " +  (b - a) +" ms");
-            }
+            if ( ( b - a ) > 1000)  Log4j.info((b - a) + "类加载超时 Class.forName( "+classFullName+" ) use time: " +  TimeTool.formatDuring(b - a));
+            findClass(callback,classType);
         } catch (Exception e) {
             Log4j.error("扫描类文件(" + classFullName+ ")错误",e);
         }

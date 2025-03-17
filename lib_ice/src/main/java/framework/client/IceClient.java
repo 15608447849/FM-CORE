@@ -1,16 +1,16 @@
 package framework.client;
 
 
-import Ice.Communicator;
-import Ice.NoEndpointException;
-import Ice.ObjectAdapter;
-import Ice.ObjectPrx;
+import Ice.*;
 import bottle.util.GoogleGsonUtil;
 import com.onek.server.inf.IParam;
 import com.onek.server.inf.IRequest;
 import com.onek.server.inf.InterfacesPrx;
 import com.onek.server.inf.InterfacesPrxHelper;
 
+import java.lang.Exception;
+import java.lang.Object;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -96,6 +96,7 @@ public class IceClient {
 
         }
         arr[0] = address.toString();
+        System.out.println(Arrays.toString(arr));
         return arr;
     }
 
@@ -135,11 +136,18 @@ public class IceClient {
     public IceClient setProxy(String serverName){
         RequestStore store = getCurrentThreadRequestStore();
         store.curPrx = convertProxy(serverName);
+
         return this;
     }
 
     private InterfacesPrx convertProxy(String serverName){
+//        ObjectPrx objectPrx = ic.stringToProxy(serverName);
+//        System.out.println( objectPrx );
+//        InterfacesPrx interfacesPrx = InterfacesPrxHelper.uncheckedCast(objectPrx);
+//        System.out.println(interfacesPrx.ice_getConnection());
+
         Ice.ObjectPrx base = ic.stringToProxy(serverName).ice_invocationTimeout(timeout);
+        System.out.println( base );
         return InterfacesPrxHelper.checkedCast(base);
     }
 
@@ -237,7 +245,15 @@ public class IceClient {
         if (store.request == null) throw new IllegalArgumentException("请请求信息");
         IRequest request = store.request;
         InterfacesPrx curPrx = store.curPrx;
-        return curPrx.accessService(request);
+        try {
+            return curPrx.accessService(request);
+        } catch (Exception e) {
+            if (e instanceof TimeoutException){
+                stopCommunication();
+                startCommunication();
+            }
+            throw e;
+        }
     }
 
     /* 执行,错误将重试最大次数 */

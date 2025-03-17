@@ -14,8 +14,9 @@ include 'lib_mq'
 include 'lib_ice'
 include 'lib_undertow'
 
-include 'module_test'
 include 'module_mltcp'
+include 'module_test'
+include 'module_test2'
 
 //include 'project_drug'
 //include 'project_erp'

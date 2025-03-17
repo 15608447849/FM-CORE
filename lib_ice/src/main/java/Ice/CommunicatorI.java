@@ -363,6 +363,7 @@ public final class CommunicatorI implements Communicator
     {
         try
         {
+//            System.out.println("finishSetup StringSeqHolder="+ args);
             _instance.finishSetup(args, this);
         }
         catch(RuntimeException ex)

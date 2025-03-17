@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 消息推送 服务端实现
  */
 public class IMServerImps extends _InterfacesDisp implements IPersistentMessage {
-    static final String FLAG = "【长连接服务】 ";
+    static final String FLAG = "【长连接】 ";
     // 当前总连接数
     private static AtomicInteger currentConnectNum = new AtomicInteger();
     //当前在线的所有客户端 <客户端类型<客户端标识,相同客户端列表>>
@@ -256,7 +256,7 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
                     }
                 }
             }catch (Exception e){
-                Log4j.error(FLAG+"关闭代理连接(缓存)失败: "+ connectionCache,e);
+                Log4j.error(FLAG+"关闭代理连接失败(缓存连接): "+ connectionCache,e);
             }
 
             Connection connection = null;
@@ -455,13 +455,13 @@ public class IMServerImps extends _InterfacesDisp implements IPersistentMessage 
 
         // 类型<>标识
         for (Map.Entry<String, ConcurrentHashMap<String, List<_LongConnectionCallback>>> entry : onlineClientMaps.entrySet()) {
-            Log4j.info("在线标识: "+ entry.getKey());
+//            Log4j.info("在线标识: "+ entry.getKey());
             // 标识-客户端列表
             ConcurrentHashMap<String, List<_LongConnectionCallback>> map = entry.getValue();
 //            Log4j.info("在线标识 MAP SIZE : "+  map.size() );
 
             for (Map.Entry<String, List<_LongConnectionCallback>> stringArrayListEntry : map.entrySet()) {
-                Log4j.info("\t在线标识 K = "+  entry.getKey() + " V = "+ stringArrayListEntry.getKey() );
+//                Log4j.info("\t在线标识 K = "+  entry.getKey() + " V = "+ stringArrayListEntry.getKey() );
                 list.add(new Tuple2<>(entry.getKey(),stringArrayListEntry.getKey()));
             }
         }

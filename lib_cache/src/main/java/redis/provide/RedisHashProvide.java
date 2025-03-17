@@ -6,9 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Redis hash 是一个string类型的field和value的映射表，hash特别适合用于存储对象。Redis 中每个 hash 可以存储 4294967295 键值对（40多亿）。
- */
+
 public class RedisHashProvide extends RedisProvide {
 	
 
@@ -79,7 +77,18 @@ public class RedisHashProvide extends RedisProvide {
 	public Set<String> getAllKeys(String colname) {
 		return build.getJedisCluster().hkeys(colname);
 	}
-	
+
+	/**
+	 * 根据集合名字获取所有哈希表 key
+	 *
+	 * @param colname 集合名字
+	 * @return
+	 */
+	public List<String> hmget(String colname,String... keys) {
+		return build.getJedisCluster().hmget(colname,keys);
+	}
+
+
 	/**
 	 * 根据集合名字获取所有哈希表 value
 	 * 

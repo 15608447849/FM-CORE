@@ -2,17 +2,10 @@ package redis.provide;
 
 import redis.config.JedisClusterBuild;
 
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Redis列表是简单的字符串列表，按照插入顺序排序。你可以添加一个元素到列表的头部（左边）或者尾部（右边）一个列表最多可以包含 4294967295 个元素 (每个列表超过40亿个元素)。
 
- * @author JiangWenGuang
- * @since 2018-06-14
- * @version 1.0
- * 
- * @param <T>
- */
 public class RedisListProvide extends RedisProvide {
 	
 	public RedisListProvide(JedisClusterBuild jedisClusterBuild) {
@@ -90,7 +83,7 @@ public class RedisListProvide extends RedisProvide {
 	 * @return 0:代表删除失败
 	 */
 	public Long deleteElementByVal(String colname, String val) {
-		List<String> list = getAllElements(colname);
+		List<String> list = size(colname) < 10000 ? getAllElements(colname) : getAllElementsUsePage(colname);
 		int num = 0;
 		if(list != null && list.size() > 0) {
 			for(String v : list) {
@@ -124,6 +117,29 @@ public class RedisListProvide extends RedisProvide {
 		return build.getJedisCluster().lrange(colname, 0, -1);
 	}
 
+	/**
+	 * 获取所有的元素-分页
+	 *
+	 * @param colname 集合名
+	 * @return
+	 */
+	public List<String> getAllElementsUsePage(String colname) {
+		List<String> list = new ArrayList<>();
+		long total = size(colname);
+		long page_size = 10000;// 每页的数量
+		long current_page = 0  ;// 当前页码
+		while (current_page * page_size < total) {
+			long start = current_page * page_size;
+			long end = Math.min(start + page_size - 1, total - 1);
+			// 使用LRANGE获取分页数据
+			System.out.println(colname + " "+ start+" -- "+ end);
+			List<String> part = build.getJedisCluster().lrange(colname, start, end);
+			if (part!=null&&part.size()>0) list.addAll(part);
+
+			current_page ++;
+		}
+		return list;
+	}
 
 	/**
 	 * 获取列表的长度

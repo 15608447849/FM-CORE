@@ -32,43 +32,34 @@ public class KProductionWarp implements KFKWarpI{
 
     }
 
-    private String shorten(String content){
-        if (content.length()<50){
-            return content;
-        }else {
-            return  content.substring(0,50)+"...";
-        }
-    }
+
     // 同步发送
     public void sendMessageToTopicSync(final String topicName,final String messageType,final String jsonContent,KFKProductionMessageCallback callback){
         if (jsonContent.getBytes().length >  5 * 1024 * 1024 ){
-            MQLog.warn("KAFKA生产-待发送数据文本内容超过5M大小限制,已丢弃 , 内容如下\n"+jsonContent);
+            MQLog.warn("KAFKA-PRODUCT-数据内容超过5M大小限制 json="+jsonContent);
             return;
         }
 
         producer.send(new ProducerRecord<>(topicName, messageType,jsonContent), (metadata, exception) -> {
             if (exception!=null){
                 //发送失败
-                MQLog.warn("KAFKA生产-发送失败\ntopic: "+ topicName+" , messageType: "+messageType+" , exception:\n" + StringUtil.printExceptInfo(exception)+"\n"+shorten(jsonContent));
+                MQLog.warn("KAFKA-PRODUCT-发送失败\ttopic="+ topicName+" messageType="+messageType+" json="+jsonContent +
+                        "\n" + StringUtil.printExceptInfo(exception) );
 
                 if (exception instanceof SerializationException){
                     // 序列化错误
-                    MQLog.warn("KAFKA生产-序列化错误\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if (exception instanceof BufferExhaustedException ){
                     //缓冲区已满
-                    MQLog.warn("KAFKA生产-缓冲区已满\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if ( exception instanceof TimeoutException){
                     //超时异常
-                    MQLog.warn("KAFKA生产-超时\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
                 if (exception instanceof InterruptedException){
                     //发送线程中断异常
-                    MQLog.warn("KAFKA生产-线程中断\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
                     return;
                 }
 
@@ -76,7 +67,7 @@ public class KProductionWarp implements KFKWarpI{
                 if (callback!=null){
                     boolean isRetry = callback.fail(topicName,messageType,jsonContent,exception);
                     if (isRetry){
-                        MQLog.warn("KAFKA生产-重新发送\ntopic: "+ topicName+" , messageType: "+messageType+"\n"+shorten(jsonContent));
+                        //MQLog.warn("KAFKA-PRODUCT-重新发送\ttopic="+ topicName+" messageType="+messageType+" json="+jsonContent);
                         sendMessageToTopicAsync(topicName,messageType,jsonContent,callback);
 
                     }

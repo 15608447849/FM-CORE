@@ -29,7 +29,7 @@ public class NodeWebFileServer {
 
     private static String tempFileDirPath = "./node_temp";
 
-    private static long tempFilePeriodTime = 10 * 60 * 1000L;
+    private static long tempFilePeriodTime = 3 * 60 * 1000L;
 
     private static String domain = "file://"+tempFileDirPath;
 

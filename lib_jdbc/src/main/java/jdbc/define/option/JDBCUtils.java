@@ -3,13 +3,18 @@ package jdbc.define.option;
 import jdbc.define.exception.JDBCException;
 import jdbc.define.log.JDBCLogger;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.parser.CCJSqlParserManager;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.util.TablesNamesFinder;
 
+import java.io.StringReader;
 import java.lang.reflect.*;
 import java.sql.*;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @Author: leeping
@@ -72,7 +77,7 @@ public class JDBCUtils {
     }
 
     /* 赋值 */
-    static <T> void classAssignment(Class clazz, T bean, ResultSet rs) {
+    static <T> void classAssignment(Class<?> clazz, T bean, ResultSet rs) {
         Field[] fields = clazz.getDeclaredFields();
         //遍历属性
         for(Field field : fields){
@@ -147,13 +152,37 @@ public class JDBCUtils {
         }
     }
 
+    public static String completeSQL(String sql , Object[] params)   {
+        if (params!=null){
+            for (Object value : params) {
+                sql = sql.replaceFirst("\\?", String.valueOf(value));
+            }
+        }
+        return sql;
+    }
+
     public static boolean isSelectStatement(String sql) {
         try {
-            Statement parse = CCJSqlParserUtil.parse(sql);
-            return parse instanceof net.sf.jsqlparser.statement.select.Select;
+            //移除通配符
+            String _sql =  sql.replace("?", "placeholder");
+            Statement statement = CCJSqlParserUtil.parse(_sql);
+            return statement instanceof net.sf.jsqlparser.statement.select.Select;
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
         return false;
     }
+    public static Set<String> pauseStatementGetTableNames(String sql){
+        try {
+            String _sql =  sql.replace("?", "placeholder");
+            Statement statement = CCJSqlParserUtil.parse(_sql);
+            TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
+            return tablesNamesFinder.getTables(statement);
+
+        } catch (JSQLParserException e) {
+           e.printStackTrace();
+        }
+        return null;
+    }
+
 }

@@ -123,6 +123,14 @@ public class Page{
         return totalItems;
     }
 
+    public int getPageIndex() {
+        return pageIndex;
+    }
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
     /* 内存分页 */
     private  <T extends Object> List<T> executeResult(List<T> result) {
         totalItems = result.size();

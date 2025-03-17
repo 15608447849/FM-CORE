@@ -52,6 +52,8 @@ public class TomcatJDBC {
 
     /* 数据库类型@表名 <-> 数据库类型@数据库名 */
     private final static Map<String,Set<String>> tableDbAllMap = new HashMap<>();
+    /* 数据库类型@表名 <-> 数据库类型@数据库名 临时表 */
+    private final static Map<String,Set<String>> tableDbTempMap = new HashMap<>();
 
     /* 数据库类型@存储过程/函数名字 <-> 数据库类型@数据库名 */
     private final static Map<String,Set<String>> dbProcedureAllMap = new HashMap<>();
@@ -283,6 +285,12 @@ public class TomcatJDBC {
             keyList.add(new TableRow(tableName,rowName,rowMark,index));
         }
     }
+    // 添加临时表信息
+    public static void addTemporaryTableInfo(DataBaseType dataBaseType, String databaseName, String tableName){
+        String databaseTypeStr = dataBaseType.name();
+        Set<String> dataBaseSet = tableDbTempMap.computeIfAbsent(databaseTypeStr+"@"+tableName, k -> new HashSet<>()); //表名获取db对应的列表
+        dataBaseSet.add(databaseName);
+    }
 
     public static void destroy() {
         clearDataBaseInfo();
@@ -345,7 +353,9 @@ public class TomcatJDBC {
 
 
     public static List<String> getDataBasesByTableName(DataBaseType dataBaseType,String tableName){
-        Set<String> set = tableDbAllMap.get(dataBaseType.name() + "@" + tableName);
+        String key = dataBaseType.name() + "@" + tableName;
+        Set<String> set = tableDbTempMap.get(key);
+        if (set == null) set = tableDbAllMap.get(key);
         return set==null ? null : new ArrayList<>(set);
     }
 

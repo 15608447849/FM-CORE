@@ -9,8 +9,43 @@
 
 package IceInternal;
 
+import java.net.InetSocketAddress;
+import java.util.HashMap;
+import java.util.Map;
+
 public abstract class IPEndpointI extends EndpointI
 {
+
+    // 20250219 兼容客户端环境 (无法访问外网 仅内网可通)
+    public static final Map<String,String> IP_CONV_MAP = new HashMap<>();
+    /**
+     * 格式: "sIP1:dIP1;sIP2:dIP2"
+     * */
+    public static void setIpConv(String input){
+        if (input == null || input.isEmpty()) {
+            return;
+        }
+        // 按分号分割键值对
+        String[] pairs = input.split(";");
+        for (String pair : pairs) {
+            // 跳过空字符串（如输入末尾有分号）
+            if (pair.trim().isEmpty()) {
+                continue;
+            }
+
+            // 按冒号分割键值
+            String[] kv = pair.split(":");
+            if (kv.length == 2) {
+                String key = kv[0].trim();
+                String value = kv[1].trim();
+                // 跳过空键或空值
+                if (!key.isEmpty() && !value.isEmpty()) {
+                    IP_CONV_MAP.put(key, value);
+                }
+            }
+        }
+    }
+
     protected IPEndpointI(ProtocolInstance instance, String host, int port, java.net.InetSocketAddress sourceAddr,
                           String connectionId)
     {
@@ -20,6 +55,7 @@ public abstract class IPEndpointI extends EndpointI
         _sourceAddr = sourceAddr;
         _connectionId = connectionId;
         _hashInitialized = false;
+        System.out.println(IPEndpointI.this.getClass().getSimpleName() +": "+ instance+ " "+ host+ " "+port+" "+sourceAddr+" "+ connectionId);
     }
 
     protected IPEndpointI(ProtocolInstance instance)
@@ -157,7 +193,16 @@ public abstract class IPEndpointI extends EndpointI
         java.util.List<Connector> connectors = new java.util.ArrayList<Connector>();
         for(java.net.InetSocketAddress p : addresses)
         {
+            System.out.println("connectors for item: InetSocketAddress="+ p +" proxy="+proxy);
+
+            String convIP = IP_CONV_MAP.get(p.getAddress().getHostAddress());
+            if (convIP !=null){
+                p = new InetSocketAddress(convIP,p.getPort());
+                System.out.println("connectors conv-> InetSocketAddress="+ p +" proxy="+proxy);
+            }
+
             connectors.add(createConnector(p, proxy));
+
         }
         return connectors;
     }
